@@ -37,6 +37,10 @@ pub use sqlx_core::query_scalar::query_scalar;
 pub use sqlx_core::row::Row;
 pub use sqlx_postgres::{PgPool, Postgres};
 
+pub mod migrate {
+    pub use sqlx_core::migrate::{Migrate, MigrateDatabase, Migrator};
+}
+
 pub mod pool {
     pub use sqlx_core::pool::{Pool, PoolConnection};
 }

@@ -35,6 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check migration version consistency
+        run: ./scripts/check-migration-version.sh
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 

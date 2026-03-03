@@ -20,11 +20,6 @@ echo "   Rust: $(rustc --version)"
 # 检查 Cargo 工具
 echo "🔍 检查 Cargo 工具..."
 
-if ! command -v sqlx &> /dev/null; then
-    echo "📦 安装 sqlx-cli..."
-    cargo install sqlx-cli --no-default-features --features native-tls,postgres
-fi
-
 if ! command -v cargo-watch &> /dev/null; then
     echo "📦 安装 cargo-watch..."
     cargo install cargo-watch
@@ -59,15 +54,19 @@ fi
 # 创建环境变量文件
 echo "📝 创建环境变量文件..."
 if [ ! -f .env ]; then
-    cat > .env <<EOF
+    cat > .env <<'ENVVARS'
 # 数据库
-DATABASE_URL=postgresql://dev_user:dev_password@localhost:5432/dev_db
+DATABASE__URL=postgresql://dev_user:dev_password@localhost:5432/dev_db
+DATABASE__POOL_SIZE=10
+DATABASE__MIGRATION__ENABLED=true
+DATABASE__MIGRATION__MAX_RETRIES=5
+DATABASE__MIGRATION__BASE_DELAY_MS=500
 
 # Redis
-REDIS_URL=redis://localhost:6379
+REDIS__URL=redis://localhost:6379
 
 # NATS
-NATS_URL=nats://localhost:4222
+NATS__URL=nats://localhost:4222
 
 # S3 / MinIO
 S3_ENDPOINT=http://localhost:9000
@@ -76,19 +75,19 @@ AWS_SECRET_ACCESS_KEY=local_dev_secret
 AWS_REGION=us-east-1
 
 # JWT
-JWT_PRIVATE_KEY_PATH=./keys/private.pem
-JWT_PUBLIC_KEY_PATH=./keys/public.pem
-JWT_ISSUER=erp-saas
-JWT_AUDIENCE=erp-saas-api
+JWT__PRIVATE_KEY_PATH=./keys/private.pem
+JWT__PUBLIC_KEY_PATH=./keys/public.pem
+JWT__ISSUER=erp-saas
+JWT__AUDIENCE=erp-saas-api
 
 # 服务
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8080
+SERVER__HOST=0.0.0.0
+SERVER__PORT=8080
 
 # 环境
-ENVIRONMENT=local
+SERVER__ENVIRONMENT=local
 RUST_LOG=debug,sqlx=info
-EOF
+ENVVARS
     echo "   ✅ .env 已创建"
 else
     echo "   ⏭️  .env 已存在"
@@ -113,7 +112,7 @@ echo ""
 echo "================================================"
 echo "  📦 运行数据库迁移..."
 echo "================================================"
-cargo sqlx migrate run
+cargo run --bin db-migrator -- up
 
 # 完成
 echo ""
@@ -130,6 +129,6 @@ echo "  MinIO API:    http://localhost:9000"
 echo "  MinIO Console: http://localhost:9001"
 echo ""
 echo "下一步:"
-echo "  make dev      # 启动开发服务器"
-echo "  make test     # 运行测试"
+echo "  just dev      # 启动开发服务器"
+echo "  just test     # 运行测试"
 echo ""

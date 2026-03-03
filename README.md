@@ -15,7 +15,6 @@
 
 - Docker & Docker Compose
 - Rust 1.85+
-- sqlx-cli (`cargo install sqlx-cli`)
 - just (可选, `cargo binstall just`)
 - prek (可选, `cargo binstall prek`)
 
@@ -35,10 +34,10 @@ just dev-up
 sleep 10
 
 # 运行数据库迁移
-make db-migrate
+just db-migrate
 
 # 启动 API 服务
-make dev
+just dev
 
 # 测试
 curl http://localhost:8080/health
@@ -90,6 +89,7 @@ just k3s-deploy
 ├── migrations/             # 数据库迁移
 ├── docs/                   # 文档
 │   ├── architecture.md     # 架构设计
+│   ├── database-migrations.md # 迁移开发指南
 │   ├── tenant-isolation.md # 租户隔离
 │   └── security.md         # 安全设计
 └── scripts/                # 工具脚本
@@ -112,6 +112,8 @@ just k3s-deploy
 | Silo | 独立数据库 | Enterprise | 物理隔离 |
 
 详见 [docs/tenant-isolation.md](docs/tenant-isolation.md)
+
+数据库迁移规范详见 [docs/database-migrations.md](docs/database-migrations.md)。
 
 ## 技术栈
 

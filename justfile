@@ -70,22 +70,28 @@ audit:
 # 数据库迁移
 # ============================================
 
+# 校验迁移版本声明
+db-check-version:
+    echo "🔎 校验迁移版本..."
+    ./scripts/check-migration-version.sh
+
 # 运行数据库迁移
 db-migrate:
     echo "📦 运行数据库迁移..."
-    sqlx migrate run
+    ./scripts/check-migration-version.sh
+    cargo run --bin db-migrator -- up
 
 # 回滚迁移
 db-rollback:
     echo "↩️ 回滚迁移..."
-    sqlx migrate revert
+    ./scripts/check-migration-version.sh
+    cargo run --bin db-migrator -- rollback
 
 # 重置数据库
 db-reset:
     echo "🔄 重置数据库..."
-    sqlx database drop -y
-    sqlx database create
-    sqlx migrate run
+    ./scripts/check-migration-version.sh
+    cargo run --bin db-migrator -- reset
 
 # ============================================
 # Docker

@@ -33,6 +33,9 @@ pub struct DatabaseConfig {
 
     #[serde(default = "default_pool_size")]
     pub pool_size: u32,
+
+    #[serde(default)]
+    pub migration: crate::db::MigrationConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]

@@ -220,7 +220,7 @@ prek install
 ./scripts/setup.sh
 ```
 会自动:
-1. 检查依赖 (Rust, Docker, sqlx-cli)
+1. 检查依赖 (Rust, Docker, cargo-watch)
 2. 生成 JWT 密钥 (keys/)
 3. 创建 .env 文件
 4. 启动 Docker 服务
@@ -273,14 +273,16 @@ sqlx::query_as!(
 
 ### 数据库迁移
 ```bash
-# 创建迁移
-sqlx migrate add <migration_name>
+# 1) 在 migrations/ 下创建新文件
+#    <timestamp>_<action>_<object>.sql
 
-# 编辑 migrations/<timestamp>_<name>.sql
+# 2) 更新 migrations/LATEST_VERSION 为最新版本号
 
-# 运行迁移
-sqlx migrate run
+# 3) 运行迁移
+just db-migrate
 ```
+
+详细规范见 `docs/database-migrations.md`（命名规范、幂等要求、回滚策略、PR Checklist）。
 
 ## 测试策略
 
@@ -319,6 +321,7 @@ async fn test_user_creation(pool: PgPool) {
 ## 文档资源
 
 - [架构设计](docs/architecture.md) - 系统架构详解
+- [迁移开发指南](docs/database-migrations.md) - 数据库迁移编写与验证规范
 - [租户隔离](docs/tenant-isolation.md) - 多租户隔离策略
 - [安全设计](docs/security.md) - 安全措施与最佳实践
 - [部署指南](docs/deployment-guide.md) - 部署流程与配置

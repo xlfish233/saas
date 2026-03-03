@@ -8,7 +8,6 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -35,10 +34,24 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Starting tenant service...");
 
-    let db = PgPoolOptions::new()
-        .max_connections(config.database.pool_size)
-        .connect(&config.database.url)
-        .await?;
+    let mut migration_settings = config.database.migration.clone();
+    migration_settings.role = shared::db::MigrationRole::Verifier;
+
+    let db = shared::db::connect_with_retry(
+        &config.database.url,
+        config.database.pool_size,
+        &migration_settings,
+    )
+    .await?;
+
+    let migration_status =
+        shared::db::run_startup_migration_or_verify(&db, &migration_settings).await?;
+    tracing::info!(
+        role = ?migration_status.role,
+        current_version = migration_status.current_version,
+        required_version = migration_status.required_version,
+        "database migration check completed"
+    );
 
     let tenant_service = Arc::new(TenantService::new(db.clone()));
 

@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/api-gateway",
     "crates/auth-service",
+    "crates/db-migrator",
     "crates/tenant-service",
     "crates/shared",
     "crates/sqlx-shim",

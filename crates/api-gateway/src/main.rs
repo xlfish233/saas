@@ -32,6 +32,25 @@ async fn main() -> anyhow::Result<()> {
         config.port()
     );
 
+    let mut migration_settings = config.database.migration.clone();
+    migration_settings.role = shared::db::MigrationRole::Owner;
+
+    let db_pool = shared::db::connect_with_retry(
+        &config.database.url,
+        config.database.pool_size,
+        &migration_settings,
+    )
+    .await?;
+
+    let migration_status =
+        shared::db::run_startup_migration_or_verify(&db_pool, &migration_settings).await?;
+    tracing::info!(
+        role = ?migration_status.role,
+        current_version = migration_status.current_version,
+        required_version = migration_status.required_version,
+        "database migration check completed"
+    );
+
     // Configure CORS from environment
     let cors = build_cors_layer(&config);
 

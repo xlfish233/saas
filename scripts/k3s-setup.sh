@@ -49,7 +49,7 @@ chmod 600 ~/.kube/config
 
 # 创建命名空间
 echo "📁 创建命名空间..."
-k3s kubectl apply -f - <<EOF
+k3s kubectl apply -f - <<'NAMESPACE_YAML'
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -63,11 +63,11 @@ metadata:
   name: monitoring
   labels:
     name: monitoring
-EOF
+NAMESPACE_YAML
 
 # 安装本地存储 Provisioner
 echo "💾 配置本地存储..."
-k3s kubectl apply -f - <<EOF
+k3s kubectl apply -f - <<'STORAGECLASS_YAML'
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -77,7 +77,7 @@ metadata:
 provisioner: rancher.io/local-path
 reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer
-EOF
+STORAGECLASS_YAML
 
 # 显示状态
 echo ""
@@ -92,6 +92,6 @@ echo "系统 Pod 状态:"
 k3s kubectl get pods -n kube-system
 echo ""
 echo "下一步:"
-echo "  1. make k3s-deploy   # 部署应用"
+echo "  1. just k3s-deploy   # 部署应用"
 echo "  2. k3s kubectl get pods -n erp-saas"
 echo ""

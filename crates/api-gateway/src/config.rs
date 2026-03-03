@@ -2,6 +2,7 @@
 
 use config::{Config as ConfigRs, Environment};
 use serde::Deserialize;
+use shared::db::MigrationConfig;
 
 #[derive(Debug, Deserialize, Clone)]
 #[allow(dead_code)]
@@ -32,6 +33,8 @@ pub struct DatabaseConfig {
     pub url: String,
     #[serde(default = "default_pool_size")]
     pub pool_size: u32,
+    #[serde(default)]
+    pub migration: MigrationConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -96,7 +99,7 @@ impl Config {
     #[allow(dead_code)]
     pub fn from_env() -> anyhow::Result<Self> {
         let config = ConfigRs::builder()
-            .add_source(Environment::default().separator("__"))
+            .add_source(Environment::default().separator("__").try_parsing(true))
             .build()?;
 
         Ok(config.try_deserialize()?)

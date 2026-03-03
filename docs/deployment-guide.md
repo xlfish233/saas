@@ -28,13 +28,13 @@
 
 ```bash
 # 1. 启动基础设施
-make dev-up
+just dev-up
 
 # 2. 运行迁移
-make db-migrate
+just db-migrate
 
 # 3. 启动服务
-make dev
+just dev
 ```
 
 ### 服务端点
@@ -55,15 +55,15 @@ make dev
 
 ```bash
 # .env.local
-DATABASE_URL=postgresql://placeholder_user:placeholder_password@localhost:5432/placeholder_db
-REDIS_URL=redis://localhost:6379
-NATS_URL=nats://localhost:4222
+DATABASE__URL=postgresql://placeholder_user:placeholder_password@localhost:5432/placeholder_db
+REDIS__URL=redis://localhost:6379
+NATS__URL=nats://localhost:4222
 S3_ENDPOINT=http://localhost:9000
 AWS_ACCESS_KEY_ID=local_dev_user
 AWS_SECRET_ACCESS_KEY=local_dev_secret
-JWT_PRIVATE_KEY_PATH=./keys/private.pem
-JWT_PUBLIC_KEY_PATH=./keys/public.pem
-ENVIRONMENT=local
+JWT__PRIVATE_KEY_PATH=./keys/private.pem
+JWT__PUBLIC_KEY_PATH=./keys/public.pem
+SERVER__ENVIRONMENT=local
 RUST_LOG=debug
 ```
 
@@ -83,13 +83,13 @@ curl -sfL https://get.k3s.io | sh -s - --disable traefik
 
 ```bash
 # 部署到 K3s
-make k3s-deploy
+just k3s-deploy
 
 # 查看状态
 kubectl get pods -A
 
 # 查看日志
-make k3s-logs
+just k3s-logs
 
 # 端口转发
 kubectl port-forward svc/api-gateway 8080:80
@@ -136,13 +136,13 @@ patches:
 
 ```bash
 # 1. 初始化 Terraform
-make tf-init
+just tf-init
 
 # 2. 查看计划
-make tf-plan
+just tf-plan
 
 # 3. 应用基础设施
-make tf-apply    # 约 20-30 分钟
+just tf-apply    # 约 20-30 分钟
 ```
 
 ### 获取集群凭证
@@ -157,11 +157,11 @@ aws eks update-kubeconfig \
 
 ```bash
 # 构建并推送镜像
-make docker-build
-make docker-push
+just docker-build
+just docker-push
 
 # 部署到 EKS
-make eks-deploy
+just eks-deploy
 ```
 
 ### 生产配置
@@ -201,14 +201,14 @@ images:
 
 ```bash
 # 部署监控栈
-make monitoring-up
+just monitoring-up
 
 # 访问 Grafana
-make port-forward-grafana
+just port-forward-grafana
 # http://localhost:3000 (admin/admin)
 
 # 访问 Prometheus
-make port-forward-prometheus
+just port-forward-prometheus
 # http://localhost:9090
 ```
 
