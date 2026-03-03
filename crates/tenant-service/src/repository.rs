@@ -120,10 +120,10 @@ impl TenantRepository {
     }
 
     pub async fn schema_exists(&self, schema_name: &str) -> Result<bool, sqlx::Error> {
-        let result: Option<(bool,)> = sqlx::query_as(&format!(
-            "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = '{}')",
-            schema_name
-        ))
+        let result: Option<(bool,)> = sqlx::query_as(
+            "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)",
+        )
+        .bind(schema_name)
         .fetch_optional(&self.pool)
         .await?;
 
@@ -131,6 +131,16 @@ impl TenantRepository {
     }
 
     pub async fn create_schema(&self, schema_name: &str) -> Result<(), sqlx::Error> {
+        // 验证 schema 名称只包含安全字符 (DDL 不支持参数化)
+        if !schema_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            return Err(sqlx::Error::Protocol(
+                "Invalid schema name: must contain only alphanumeric characters and underscores"
+                    .into(),
+            ));
+        }
         sqlx::query(&format!("CREATE SCHEMA IF NOT EXISTS {}", schema_name))
             .execute(&self.pool)
             .await?;
