@@ -37,7 +37,7 @@ impl RateLimiter {
     pub fn check(&self, key: &str) -> Result<(), StatusCode> {
         let now = Instant::now();
 
-        let entry = self.requests.entry(key.to_string()).or_insert_with(|| RateLimitEntry {
+        let mut entry = self.requests.entry(key.to_string()).or_insert_with(|| RateLimitEntry {
             count: 0,
             reset_at: now + self.window,
         });

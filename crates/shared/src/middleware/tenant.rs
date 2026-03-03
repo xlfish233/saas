@@ -1,5 +1,6 @@
 //! Tenant context middleware
 
+use std::sync::Arc;
 use axum::{
     extract::Request,
     http::StatusCode,
@@ -14,7 +15,7 @@ use crate::tenant::{Tenant, TenantContext};
 /// This middleware extracts tenant information from the request and adds
 /// it to the request extensions.
 pub async fn tenant_middleware(
-    axum::extract::State(tenant_loader): axum::extract::State<TenantLoader>,
+    axum::extract::State(tenant_loader): axum::extract::State<Arc<dyn TenantLoader>>,
     mut request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {

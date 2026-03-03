@@ -5,7 +5,7 @@ use opentelemetry_otlp::WithExportConfig;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Initialize tracing with optional OTLP export
-pub fn init_tracing(service_name: &str) {
+pub fn init_tracing(service_name: &'static str) {
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_target(true)
         .with_thread_ids(false)
@@ -29,7 +29,7 @@ pub fn init_tracing(service_name: &str) {
     }
 }
 
-fn init_otlp_tracer(service_name: &str) -> Result<opentelemetry_sdk::trace::Tracer, Box<dyn std::error::Error>> {
+fn init_otlp_tracer(service_name: &'static str) -> Result<opentelemetry_sdk::trace::Tracer, Box<dyn std::error::Error>> {
     let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".to_string());
 

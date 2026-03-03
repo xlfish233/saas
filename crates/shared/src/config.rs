@@ -78,9 +78,9 @@ impl AppConfig {
                 .separator("__")
                 .try_parsing(true))
             .build()
-            .map_err(crate::Error::Config)?;
-        
-        config.try_deserialize().map_err(crate::Error::Config)
+            .map_err(|e| crate::Error::Config(e.to_string()))?;
+
+        config.try_deserialize().map_err(|e| crate::Error::Config(e.to_string()))
     }
     
     pub fn global() -> &'static Self {

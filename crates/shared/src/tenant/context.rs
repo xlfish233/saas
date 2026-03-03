@@ -4,21 +4,16 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Tenant isolation levels
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum IsolationLevel {
     /// Shared database, shared schema (logical isolation via tenant_id)
+    #[default]
     Pool,
     /// Shared database, separate schema per tenant
     Bridge,
     /// Separate database per tenant
     Silo,
-}
-
-impl Default for IsolationLevel {
-    fn default() -> Self {
-        Self::Pool
-    }
 }
 
 impl std::fmt::Display for IsolationLevel {
@@ -45,18 +40,13 @@ impl std::str::FromStr for IsolationLevel {
 }
 
 /// Tenant subscription plans
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Plan {
+    #[default]
     Starter,
     Pro,
     Enterprise,
-}
-
-impl Default for Plan {
-    fn default() -> Self {
-        Self::Starter
-    }
 }
 
 impl std::fmt::Display for Plan {

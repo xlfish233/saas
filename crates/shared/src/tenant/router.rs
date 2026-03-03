@@ -1,6 +1,6 @@
 //! Tenant database routing
 
-use sqlx::{PgConnection, PgPool};
+use sqlx::{PgPool, Postgres, pool::PoolConnection};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -11,11 +11,11 @@ use super::{IsolationLevel, Tenant};
 /// Tenant-specific database connection
 pub enum TenantConnection {
     /// Pool isolation - shared connection with tenant_id context
-    Pool(PgConnection),
+    Pool(PoolConnection<Postgres>),
     /// Bridge isolation - connection with schema set
-    Bridge(PgConnection),
+    Bridge(PoolConnection<Postgres>),
     /// Silo isolation - dedicated database connection
-    Silo(PgConnection),
+    Silo(PoolConnection<Postgres>),
 }
 
 /// Router for tenant database connections

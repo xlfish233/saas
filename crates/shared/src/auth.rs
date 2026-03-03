@@ -190,7 +190,7 @@ impl JwtService {
         validation.set_audience(&[&self.audience]);
 
         let token_data = decode::<Claims>(token, &self.decoding_key, &validation)
-            .map_err(|e| e.into())?;
+            .map_err(crate::Error::from)?;
 
         // 4. Check if token is revoked
         if self.revocation_store.is_revoked(&token_data.claims.jti).await {
@@ -208,13 +208,13 @@ impl JwtService {
 
 /// Password hashing utilities using Argon2
 pub struct PasswordHasher {
-    hasher: argon2::password_hash::Argon2<'static>,
+    hasher: argon2::Argon2<'static>,
 }
 
 impl PasswordHasher {
     pub fn new() -> Self {
         Self {
-            hasher: argon2::password_hash::Argon2::default(),
+            hasher: argon2::Argon2::default(),
         }
     }
 
