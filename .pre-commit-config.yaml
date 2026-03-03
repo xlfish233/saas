@@ -1,5 +1,6 @@
 # Pre-commit hooks for ERP SaaS Platform
-# See https://pre-commit.com for more information
+# Managed by prek (Rust-based pre-commit framework)
+# See https://prek.j178.dev/ for more information
 
 repos:
   # General hooks
@@ -58,12 +59,12 @@ repos:
 # CI configuration
 ci:
   autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit.com hooks
+    [prek] auto fixes from pre-commit hooks
 
-    for more information, see https://pre-commit.ci
+    for more information, see https://prek.j178.dev/
   autofix_prs: true
   autoupdate_branch: ''
-  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_commit_msg: '[prek] pre-commit autoupdate'
   autoupdate_schedule: weekly
   skip: [cargo-test]  # Skip long-running tests in CI
   submodules: false

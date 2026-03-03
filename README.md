@@ -12,7 +12,7 @@
 - Rust 1.75+
 - sqlx-cli (`cargo install sqlx-cli`)
 - Make (可选)
-- pre-commit (可选, `pip install pre-commit` 或 `brew install pre-commit`)
+- prek (可选, `cargo install prek`)
 
 ### 1. 本地开发 (推荐)
 
@@ -20,8 +20,8 @@
 # 安装依赖并生成配置
 ./scripts/setup.sh
 
-# 可选：安装 pre-commit hooks
-pre-commit install
+# 可选：安装 prek git hooks
+prek install
 
 # 启动基础设施 (PostgreSQL, Redis, NATS, MinIO, LocalStack)
 make dev-up
@@ -123,20 +123,20 @@ make k3s-deploy
 
 ## 开发工具
 
-### Pre-commit Hooks
+### Git Hooks (prek)
 
-项目使用 [pre-commit](https://pre-commit.com/) 框架在每次提交前自动运行代码质量检查。
+项目使用 [prek](https://prek.j178.dev/) - 一个用 Rust 重写的高性能 pre-commit 框架，速度比 Python 版本快 5-6 倍。
 
 **安装**:
 ```bash
-# 安装 pre-commit
-pip install pre-commit
+# 安装 prek
+cargo install prek
 
 # 安装 git hooks
-pre-commit install
+prek install
 
 # (可选) 手动运行所有 hooks
-pre-commit run --all-files
+prek run --all-files
 ```
 
 **自动运行的检查**:
@@ -146,8 +146,9 @@ pre-commit run --all-files
 - 文件大小检查
 - 拼写错误检查
 - 行尾空白检查
+- 安全扫描 (gitleaks)
 
-> **注意**: `cargo test` 在 CI 中会被跳过以节省时间，本地开发时建议手动运行测试。
+> **优势**: prek 完全兼容现有的 `.pre-commit-config.yaml` 配置，无需修改任何配置文件即可享受 Rust 带来的性能提升。
 
 ## 常用命令
 
