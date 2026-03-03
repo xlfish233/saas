@@ -16,8 +16,7 @@ impl TenantRepository {
     }
 
     pub async fn list_all(&self) -> Result<Vec<Tenant>, sqlx::Error> {
-        sqlx::query_as!(
-            Tenant,
+        sqlx::query_as::<_, Tenant>(
             r#"
             SELECT id, name, slug, isolation_level, plan, is_active, schema_name, database_url, created_at, updated_at
             FROM tenants
@@ -29,29 +28,27 @@ impl TenantRepository {
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<Tenant>, sqlx::Error> {
-        sqlx::query_as!(
-            Tenant,
+        sqlx::query_as::<_, Tenant>(
             r#"
             SELECT id, name, slug, isolation_level, plan, is_active, schema_name, database_url, created_at, updated_at
             FROM tenants
             WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .fetch_optional(&self.pool)
         .await
     }
 
     pub async fn find_by_slug(&self, slug: &str) -> Result<Option<Tenant>, sqlx::Error> {
-        sqlx::query_as!(
-            Tenant,
+        sqlx::query_as::<_, Tenant>(
             r#"
             SELECT id, name, slug, isolation_level, plan, is_active, schema_name, database_url, created_at, updated_at
             FROM tenants
             WHERE slug = $1
             "#,
-            slug
         )
+        .bind(slug)
         .fetch_optional(&self.pool)
         .await
     }
@@ -63,15 +60,17 @@ impl TenantRepository {
         isolation_level: &str,
         plan: &str,
     ) -> Result<Tenant, sqlx::Error> {
-        sqlx::query_as!(
-            Tenant,
+        sqlx::query_as::<_, Tenant>(
             r#"
             INSERT INTO tenants (name, slug, isolation_level, plan)
             VALUES ($1, $2, $3, $4)
             RETURNING id, name, slug, isolation_level, plan, is_active, schema_name, database_url, created_at, updated_at
             "#,
-            name, slug, isolation_level, plan
         )
+        .bind(name)
+        .bind(slug)
+        .bind(isolation_level)
+        .bind(plan)
         .fetch_one(&self.pool)
         .await
     }
@@ -84,8 +83,7 @@ impl TenantRepository {
         is_active: Option<bool>,
         schema_name: Option<&str>,
     ) -> Result<Tenant, sqlx::Error> {
-        sqlx::query_as!(
-            Tenant,
+        sqlx::query_as::<_, Tenant>(
             r#"
             UPDATE tenants
             SET
@@ -97,21 +95,25 @@ impl TenantRepository {
             WHERE id = $1
             RETURNING id, name, slug, isolation_level, plan, is_active, schema_name, database_url, created_at, updated_at
             "#,
-            id, name, plan, is_active, schema_name
         )
+        .bind(id)
+        .bind(name)
+        .bind(plan)
+        .bind(is_active)
+        .bind(schema_name)
         .fetch_one(&self.pool)
         .await
     }
 
     pub async fn soft_delete(&self, id: Uuid) -> Result<(), sqlx::Error> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE tenants
             SET is_active = false, updated_at = NOW()
             WHERE id = $1
             "#,
-            id
         )
+        .bind(id)
         .execute(&self.pool)
         .await?;
         Ok(())
