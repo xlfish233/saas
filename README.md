@@ -12,7 +12,7 @@
 - Rust 1.75+
 - sqlx-cli (`cargo install sqlx-cli`)
 - Make (可选)
-- prek (可选, `cargo install prek`)
+- prek (可选, `cargo binstall prek`)
 
 ### 1. 本地开发 (推荐)
 
@@ -129,8 +129,11 @@ make k3s-deploy
 
 **安装**:
 ```bash
-# 安装 prek
-cargo install prek
+# 安装 cargo-binstall (如果尚未安装)
+cargo install cargo-binstall
+
+# 使用 binstall 快速安装 prek (从预编译二进制)
+cargo binstall prek
 
 # 安装 git hooks
 prek install

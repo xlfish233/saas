@@ -161,7 +161,11 @@ make k3s-deploy          # 部署到 K3s
 
 **安装**:
 ```bash
-cargo install prek
+# 安装 cargo-binstall (如果尚未安装)
+cargo install cargo-binstall
+
+# 使用 binstall 快速安装 prek
+cargo binstall prek
 prek install
 ```
 
