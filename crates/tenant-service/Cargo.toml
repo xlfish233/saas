@@ -2,7 +2,7 @@
 name = "tenant-service"
 version.workspace = true
 edition.workspace = true
-publish.workspace = false
+publish = false
 
 [dependencies]
 shared = { path = "../shared" }
