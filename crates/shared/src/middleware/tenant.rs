@@ -1,17 +1,12 @@
 //! Tenant context middleware
 
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use std::sync::Arc;
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
 
 use crate::tenant::{Tenant, TenantContext};
 
 /// Tenant context middleware
-/// 
+///
 /// This middleware extracts tenant information from the request and adds
 /// it to the request extensions.
 pub async fn tenant_middleware(
@@ -61,7 +56,7 @@ fn extract_tenant_from_subdomain(host: &str) -> Option<&str> {
     // Handle formats like: tenant.app.example.com, tenant.localhost:8080
     let host = host.split(':').next()?;
     let parts: Vec<&str> = host.split('.').collect();
-    
+
     if parts.len() >= 2 {
         Some(parts[0])
     } else {
@@ -72,7 +67,10 @@ fn extract_tenant_from_subdomain(host: &str) -> Option<&str> {
 /// Tenant loader trait - implement this to load tenants from your data source
 #[async_trait::async_trait]
 pub trait TenantLoader: Send + Sync + 'static {
-    async fn load_tenant(&self, tenant_id: uuid::Uuid) -> Result<Option<Tenant>, Box<dyn std::error::Error>>;
+    async fn load_tenant(
+        &self,
+        tenant_id: uuid::Uuid,
+    ) -> Result<Option<Tenant>, Box<dyn std::error::Error>>;
 }
 
 /// Get tenant from request

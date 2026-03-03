@@ -9,7 +9,7 @@ pub fn init_tracing() {
         .with_target(true)
         .with_thread_ids(true)
         .pretty();
-    
+
     // Try to init OTLP if endpoint is available
     if let Ok(tracer) = init_otlp_tracer() {
         tracing_subscriber::registry()
@@ -23,22 +23,22 @@ pub fn init_tracing() {
             .try_init()
             .ok();
     }
-    
+
     tracing::info!("Tracing initialized");
 }
 
 fn init_otlp_tracer() -> anyhow::Result<opentelemetry_sdk::trace::Tracer> {
     let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".to_string());
-    
+
     let exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_tonic()
         .with_endpoint(format!("{}/v1/traces", otlp_endpoint))
         .build()?;
-    
+
     let tracer_provider = opentelemetry_sdk::trace::TracerProvider::builder()
         .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
         .build();
-    
+
     Ok(tracer_provider.tracer("api-gateway"))
 }

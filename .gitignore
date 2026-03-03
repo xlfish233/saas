@@ -4,6 +4,7 @@
 *.pdb
 Cargo.lock
 **/target/
+.sqlx/
 
 # IDE
 .idea/

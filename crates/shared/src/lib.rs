@@ -1,5 +1,5 @@
 //! Shared library for ERP SaaS platform
-//! 
+//!
 //! Provides common utilities, middleware, and types used across all services.
 
 pub mod auth;

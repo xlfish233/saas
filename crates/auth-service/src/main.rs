@@ -1,8 +1,10 @@
 //! Auth Service - Authentication and Authorization
-//! 
+//!
 //! Handles user authentication, token management, and session control.
 
 use axum::{
+    extract::State,
+    http::StatusCode,
     routing::{get, post},
     Router,
 };
@@ -15,10 +17,11 @@ mod models;
 mod repository;
 mod service;
 
-use shared::config::AppConfig;
 use service::AuthService;
+use shared::config::AppConfig;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct AppState {
     config: Arc<AppConfig>,
     db: sqlx::PgPool,
@@ -41,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     // Run migrations
-    sqlx::migrate!("./migrations").run(&db).await?;
+    sqlx::migrate!("../../migrations").run(&db).await?;
 
     // Connect to Redis
     let redis = redis::Client::open(config.redis.url.as_str())?;
@@ -68,6 +71,9 @@ async fn main() -> anyhow::Result<()> {
         auth_service,
     };
 
+    // Get address before moving state
+    let addr = format!("{}:{}", state.config.server.host, state.config.server.port);
+
     // Build router
     let app = Router::new()
         .route("/health", get(health))
@@ -81,11 +87,6 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state);
 
     // Start server
-    let addr = format!("{}:{}", 
-        state.config.server.host,
-        state.config.server.port
-    );
-    
     tracing::info!("Listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;

@@ -1,12 +1,14 @@
 //! Authentication service business logic
+#![allow(dead_code)]
 
 use redis::Client;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::models::User;
-use crate::repository::{UserRepository, TenantRepository, TokenRepository};
+use crate::repository::{TenantRepository, TokenRepository, UserRepository};
 
 pub struct AuthService {
     jwt_service: shared::auth::JwtService,
@@ -42,27 +44,28 @@ impl AuthService {
         tenant_slug: Option<&str>,
     ) -> Result<User, anyhow::Error> {
         // Find user by email
-        let user = self.users
+        let user = self
+            .users
             .find_by_email(email)
             .await?
             .ok_or_else(|| anyhow::anyhow!("User not found"))?;
 
         // Verify tenant if specified
         if let Some(slug) = tenant_slug {
-            let tenant = self.tenants
+            let tenant = self
+                .tenants
                 .find_by_slug(slug)
                 .await?
                 .ok_or_else(|| anyhow::anyhow!("Tenant not found"))?;
-            
+
             if tenant.id != user.tenant_id {
                 return Err(anyhow::anyhow!("Invalid tenant"));
             }
         }
 
         // Verify password
-        let valid = self.password_hasher
-            .verify(password, &user.password_hash)?;
-        
+        let valid = self.password_hasher.verify(password, &user.password_hash)?;
+
         if !valid {
             return Err(anyhow::anyhow!("Invalid password"));
         }
@@ -81,31 +84,37 @@ impl AuthService {
         )?;
 
         // Generate refresh token
-        let (refresh_token, jti) = self.jwt_service.generate_refresh_token(
-            user.id,
-            user.tenant_id,
-        )?;
+        let (refresh_token, _jti) = self
+            .jwt_service
+            .generate_refresh_token(user.id, user.tenant_id)?;
 
         // Store refresh token hash in database
         let token_hash = self.hash_token(&refresh_token);
-        let expires_at = chrono::Utc::now() + chrono::Duration::days(7);
-        self.tokens.store_refresh_token(user.id, &token_hash, expires_at).await?;
+        let expires_at = OffsetDateTime::now_utc() + time::Duration::days(7);
+        self.tokens
+            .store_refresh_token(user.id, &token_hash, expires_at)
+            .await?;
 
         Ok((access_token, refresh_token))
     }
 
     /// Refresh tokens using a refresh token
-    pub async fn refresh_tokens(&self, refresh_token: &str) -> Result<(User, String, String), anyhow::Error> {
+    pub async fn refresh_tokens(
+        &self,
+        refresh_token: &str,
+    ) -> Result<(User, String, String), anyhow::Error> {
         let token_hash = self.hash_token(refresh_token);
-        
+
         // Find and validate stored token
-        let stored = self.tokens
+        let stored = self
+            .tokens
             .find_refresh_token(&token_hash)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Invalid refresh token"))?;
 
         // Get user
-        let user = self.users
+        let user = self
+            .users
             .find_by_id(stored.user_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("User not found"))?;
@@ -132,7 +141,10 @@ impl AuthService {
 
     /// Validate an access token
     pub async fn validate_token(&self, token: &str) -> Result<shared::auth::Claims, anyhow::Error> {
-        self.jwt_service.validate_token(token).await.map_err(Into::into)
+        self.jwt_service
+            .validate_token(token)
+            .await
+            .map_err(Into::into)
     }
 
     /// Get user by ID
@@ -163,9 +175,7 @@ impl AuthService {
                 "users:write".to_string(),
                 "finance:read".to_string(),
             ],
-            _ => vec![
-                "users:read".to_string(),
-            ],
+            _ => vec!["users:read".to_string()],
         }
     }
 }

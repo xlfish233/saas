@@ -94,15 +94,12 @@ impl axum::response::IntoResponse for Error {
             Error::TenantNotFound(_) | Error::UserNotFound(_) => {
                 (StatusCode::NOT_FOUND, self.to_string())
             }
-            Error::RateLimitExceeded => {
-                (StatusCode::TOO_MANY_REQUESTS, self.to_string())
-            }
-            Error::Validation(_) => {
-                (StatusCode::BAD_REQUEST, self.to_string())
-            }
-            _ => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-            }
+            Error::RateLimitExceeded => (StatusCode::TOO_MANY_REQUESTS, self.to_string()),
+            Error::Validation(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            ),
         };
 
         let body = Json(json!({

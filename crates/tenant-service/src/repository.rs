@@ -1,4 +1,5 @@
 //! Database repository for tenant data
+#![allow(dead_code)]
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -87,7 +88,7 @@ impl TenantRepository {
             Tenant,
             r#"
             UPDATE tenants
-            SET 
+            SET
                 name = COALESCE($2, name),
                 plan = COALESCE($3, plan),
                 is_active = COALESCE($4, is_active),
@@ -117,12 +118,13 @@ impl TenantRepository {
     }
 
     pub async fn schema_exists(&self, schema_name: &str) -> Result<bool, sqlx::Error> {
-        let result: Option<(bool,)> = sqlx::query_as(
-            &format!("SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = '{}')", schema_name)
-        )
+        let result: Option<(bool,)> = sqlx::query_as(&format!(
+            "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = '{}')",
+            schema_name
+        ))
         .fetch_optional(&self.pool)
         .await?;
-        
+
         Ok(result.map(|(b,)| b).unwrap_or(false))
     }
 

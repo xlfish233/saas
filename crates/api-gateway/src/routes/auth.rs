@@ -1,14 +1,11 @@
 //! Auth Routes
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    Json,
-};
+use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[allow(dead_code)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,

@@ -1,8 +1,10 @@
 //! Tenant Service - Multi-tenant Management
-//! 
+//!
 //! Handles tenant lifecycle, configuration, and isolation management.
 
 use axum::{
+    extract::State,
+    http::StatusCode,
     routing::{delete, get, post, put},
     Router,
 };
@@ -15,10 +17,11 @@ mod models;
 mod repository;
 mod service;
 
-use shared::config::AppConfig;
 use service::TenantService;
+use shared::config::AppConfig;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 struct AppState {
     config: Arc<AppConfig>,
     db: sqlx::PgPool,
@@ -37,7 +40,7 @@ async fn main() -> anyhow::Result<()> {
         .connect(&config.database.url)
         .await?;
 
-    sqlx::migrate!("./migrations").run(&db).await?;
+    sqlx::migrate!("../../migrations").run(&db).await?;
 
     let tenant_service = Arc::new(TenantService::new(db.clone()));
 
@@ -46,6 +49,8 @@ async fn main() -> anyhow::Result<()> {
         db,
         tenant_service,
     };
+
+    let addr = format!("{}:{}", state.config.server.host, state.config.server.port);
 
     let app = Router::new()
         .route("/health", get(health))
@@ -60,11 +65,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let addr = format!("{}:{}", 
-        state.config.server.host,
-        state.config.server.port
-    );
-    
     tracing::info!("Listening on {}", addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;

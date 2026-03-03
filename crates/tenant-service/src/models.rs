@@ -1,11 +1,12 @@
 //! Data models for tenant service
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 /// Tenant database model
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct Tenant {
     pub id: Uuid,
     pub name: String,
@@ -15,8 +16,8 @@ pub struct Tenant {
     pub is_active: bool,
     pub schema_name: Option<String>,
     pub database_url: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 /// Tenant response DTO

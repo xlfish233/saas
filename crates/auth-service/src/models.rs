@@ -1,11 +1,12 @@
 //! Data models for auth service
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 /// User model
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct User {
     pub id: Uuid,
     pub tenant_id: Uuid,
@@ -14,12 +15,13 @@ pub struct User {
     pub name: String,
     pub role: String,
     pub is_active: bool,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: OffsetDateTime,
+    pub updated_at: OffsetDateTime,
 }
 
 /// Tenant model
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct Tenant {
     pub id: Uuid,
     pub name: String,
@@ -31,12 +33,13 @@ pub struct Tenant {
 
 /// Refresh token model
 #[derive(Debug, Clone, sqlx::FromRow)]
+#[allow(dead_code)]
 pub struct RefreshToken {
     pub id: Uuid,
     pub user_id: Uuid,
     pub token_hash: String,
-    pub expires_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
+    pub expires_at: OffsetDateTime,
+    pub created_at: OffsetDateTime,
 }
 
 /// Error response

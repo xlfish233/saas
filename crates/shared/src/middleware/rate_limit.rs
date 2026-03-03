@@ -1,11 +1,6 @@
 //! Rate limiting middleware using DashMap
 
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
 use dashmap::DashMap;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -37,10 +32,13 @@ impl RateLimiter {
     pub fn check(&self, key: &str) -> Result<(), StatusCode> {
         let now = Instant::now();
 
-        let mut entry = self.requests.entry(key.to_string()).or_insert_with(|| RateLimitEntry {
-            count: 0,
-            reset_at: now + self.window,
-        });
+        let mut entry = self
+            .requests
+            .entry(key.to_string())
+            .or_insert_with(|| RateLimitEntry {
+                count: 0,
+                reset_at: now + self.window,
+            });
 
         // Reset if window expired
         if now >= entry.reset_at {

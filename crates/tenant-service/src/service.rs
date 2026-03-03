@@ -1,4 +1,5 @@
 //! Tenant service business logic
+#![allow(dead_code)]
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -40,7 +41,8 @@ impl TenantService {
         isolation_level: shared::tenant::IsolationLevel,
         plan: shared::tenant::Plan,
     ) -> Result<Tenant, anyhow::Error> {
-        let tenant = self.repo
+        let tenant = self
+            .repo
             .create(name, slug, &isolation_level.to_string(), &plan.to_string())
             .await?;
 
@@ -48,9 +50,11 @@ impl TenantService {
         if isolation_level == shared::tenant::IsolationLevel::Bridge {
             let schema_name = format!("tenant_{}", slug.replace('-', "_"));
             self.repo.create_schema(&schema_name).await?;
-            
+
             // Update tenant with schema name
-            self.repo.update(tenant.id, None, None, None, Some(&schema_name)).await
+            self.repo
+                .update(tenant.id, None, None, None, Some(&schema_name))
+                .await
                 .map_err(Into::into)
         } else {
             Ok(tenant)
@@ -66,7 +70,13 @@ impl TenantService {
         is_active: Option<bool>,
     ) -> Result<Tenant, anyhow::Error> {
         self.repo
-            .update(id, name, plan.as_ref().map(|p| p.to_string()).as_deref(), is_active, None)
+            .update(
+                id,
+                name,
+                plan.as_ref().map(|p| p.to_string()).as_deref(),
+                is_active,
+                None,
+            )
             .await
             .map_err(Into::into)
     }
@@ -81,17 +91,21 @@ impl TenantService {
         let tenant = self.get_tenant(tenant_id).await?;
 
         if tenant.isolation_level != "bridge" {
-            return Err(anyhow::anyhow!("Schema creation only supported for Bridge isolation"));
+            return Err(anyhow::anyhow!(
+                "Schema creation only supported for Bridge isolation"
+            ));
         }
 
         let schema_name = format!("tenant_{}", tenant.slug.replace('-', "_"));
-        
+
         if !self.repo.schema_exists(&schema_name).await? {
             self.repo.create_schema(&schema_name).await?;
         }
 
         // Update tenant with schema name
-        self.repo.update(tenant_id, None, None, None, Some(&schema_name)).await?;
+        self.repo
+            .update(tenant_id, None, None, None, Some(&schema_name))
+            .await?;
 
         Ok(schema_name)
     }

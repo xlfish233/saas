@@ -16,6 +16,7 @@ serde_json.workspace = true
 sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true
+time.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
@@ -23,6 +24,8 @@ config.workspace = true
 
 argon2.workspace = true
 jsonwebtoken.workspace = true
+redis.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true

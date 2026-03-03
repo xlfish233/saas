@@ -1,6 +1,8 @@
 //! Authentication utilities
 
-use jsonwebtoken::{decode, decode_header, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    decode, decode_header, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -50,7 +52,7 @@ impl TokenRevocationStore {
     pub async fn is_revoked(&self, jti: &Uuid) -> bool {
         self.revoked_tokens.read().await.contains(jti)
     }
-    
+
     pub async fn revoke_all_for_user(&self, user_id: Uuid) {
         // In production, this would query Redis to find all tokens for user
         // For now, we just log this action
@@ -89,7 +91,7 @@ impl JwtService {
             .map_err(|e| crate::Error::Config(format!("Failed to read private key: {}", e)))?;
         let public_key = std::fs::read(public_key_path)
             .map_err(|e| crate::Error::Config(format!("Failed to read public key: {}", e)))?;
-        
+
         Ok(Self {
             encoding_key: EncodingKey::from_rsa_pem(&private_key)
                 .map_err(|e| crate::Error::Config(format!("Invalid private key: {}", e)))?,
@@ -102,7 +104,7 @@ impl JwtService {
             revocation_store: TokenRevocationStore::new(),
         })
     }
-    
+
     /// Create from raw PEM data
     pub fn new(
         private_key_pem: &[u8],
@@ -117,8 +119,8 @@ impl JwtService {
                 .map_err(|e| crate::Error::Config(format!("Invalid public key: {}", e)))?,
             issuer,
             audience,
-            access_token_expiry: 900,      // 15 minutes
-            refresh_token_expiry: 604800,  // 7 days
+            access_token_expiry: 900,     // 15 minutes
+            refresh_token_expiry: 604800, // 7 days
             revocation_store: TokenRevocationStore::new(),
         })
     }
@@ -151,7 +153,11 @@ impl JwtService {
     }
 
     /// Generate a refresh token
-    pub fn generate_refresh_token(&self, user_id: Uuid, tenant_id: Uuid) -> Result<(String, Uuid), crate::Error> {
+    pub fn generate_refresh_token(
+        &self,
+        user_id: Uuid,
+        tenant_id: Uuid,
+    ) -> Result<(String, Uuid), crate::Error> {
         let now = chrono::Utc::now().timestamp() as usize;
         let jti = Uuid::new_v4();
 
@@ -169,7 +175,7 @@ impl JwtService {
 
         let token = encode(&Header::new(Algorithm::RS256), &claims, &self.encoding_key)
             .map_err(|e| crate::Error::Auth(format!("Token generation failed: {}", e)))?;
-        
+
         Ok((token, jti))
     }
 
@@ -181,7 +187,9 @@ impl JwtService {
 
         // 2. Verify algorithm is RS256 (prevent algorithm confusion)
         if header.alg != Algorithm::RS256 {
-            return Err(crate::Error::Auth("Invalid algorithm - only RS256 allowed".to_string()));
+            return Err(crate::Error::Auth(
+                "Invalid algorithm - only RS256 allowed".to_string(),
+            ));
         }
 
         // 3. Validate signature and claims
@@ -189,11 +197,15 @@ impl JwtService {
         validation.set_issuer(&[&self.issuer]);
         validation.set_audience(&[&self.audience]);
 
-        let token_data = decode::<Claims>(token, &self.decoding_key, &validation)
-            .map_err(crate::Error::from)?;
+        let token_data =
+            decode::<Claims>(token, &self.decoding_key, &validation).map_err(crate::Error::from)?;
 
         // 4. Check if token is revoked
-        if self.revocation_store.is_revoked(&token_data.claims.jti).await {
+        if self
+            .revocation_store
+            .is_revoked(&token_data.claims.jti)
+            .await
+        {
             return Err(crate::Error::TokenRevoked);
         }
 
@@ -221,7 +233,7 @@ impl PasswordHasher {
     /// Hash a password
     pub fn hash(&self, password: &str) -> Result<String, crate::Error> {
         use argon2::password_hash::{rand_core::OsRng, PasswordHasher, SaltString};
-        
+
         let salt = SaltString::generate(&mut OsRng);
         self.hasher
             .hash_password(password.as_bytes(), &salt)
@@ -232,16 +244,19 @@ impl PasswordHasher {
     /// Verify a password against a hash
     pub fn verify(&self, password: &str, hash: &str) -> Result<bool, crate::Error> {
         use argon2::password_hash::{PasswordHash, PasswordVerifier};
-        
+
         let parsed_hash = PasswordHash::new(hash)
             .map_err(|e| crate::Error::Auth(format!("Invalid hash format: {}", e)))?;
-        
+
         self.hasher
             .verify_password(password.as_bytes(), &parsed_hash)
             .map(|_| true)
             .or_else(|e| match e {
                 argon2::password_hash::Error::Password => Ok(false),
-                _ => Err(crate::Error::Auth(format!("Password verification failed: {}", e))),
+                _ => Err(crate::Error::Auth(format!(
+                    "Password verification failed: {}",
+                    e
+                ))),
             })
     }
 }
@@ -260,9 +275,13 @@ mod tests {
     fn test_password_hash_and_verify() {
         let hasher = PasswordHasher::new();
         let password = "test_password_123";
-        
+
         let hash = hasher.hash(password).expect("Failed to hash password");
-        assert!(hasher.verify(password, &hash).expect("Failed to verify password"));
-        assert!(!hasher.verify("wrong_password", &hash).expect("Failed to verify wrong password"));
+        assert!(hasher
+            .verify(password, &hash)
+            .expect("Failed to verify password"));
+        assert!(!hasher
+            .verify("wrong_password", &hash)
+            .expect("Failed to verify wrong password"));
     }
 }

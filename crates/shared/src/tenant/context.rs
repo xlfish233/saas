@@ -59,6 +59,19 @@ impl std::fmt::Display for Plan {
     }
 }
 
+impl std::str::FromStr for Plan {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "starter" => Ok(Self::Starter),
+            "pro" => Ok(Self::Pro),
+            "enterprise" => Ok(Self::Enterprise),
+            _ => Err(format!("Invalid plan: {}", s)),
+        }
+    }
+}
+
 /// Tenant information
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tenant {
@@ -94,8 +107,7 @@ impl TenantContext {
     /// Check if user has a specific permission
     pub fn has_permission(&self, permission: &str) -> bool {
         self.permissions.iter().any(|p| {
-            p == permission || 
-            (p.ends_with(":*") && permission.starts_with(&p[..p.len() - 1]))
+            p == permission || (p.ends_with(":*") && permission.starts_with(&p[..p.len() - 1]))
         })
     }
 

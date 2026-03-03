@@ -29,7 +29,9 @@ pub fn init_tracing(service_name: &'static str) {
     }
 }
 
-fn init_otlp_tracer(service_name: &'static str) -> Result<opentelemetry_sdk::trace::Tracer, Box<dyn std::error::Error>> {
+fn init_otlp_tracer(
+    service_name: &'static str,
+) -> Result<opentelemetry_sdk::trace::Tracer, Box<dyn std::error::Error>> {
     let otlp_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT")
         .unwrap_or_else(|_| "http://localhost:4317".to_string());
 
