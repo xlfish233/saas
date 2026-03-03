@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  # Database URL is now in Secret (db-credentials)
+  redis_url: "redis://redis:6379"
+  nats_url: "nats://nats:4222"
+  jwt_issuer: "erp-saas"
+  jwt_audience: "erp-saas-api"
+  rust_log: "info"

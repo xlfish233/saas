@@ -1,0 +1,168 @@
+# 本地开发环境 - Docker Compose
+# 用法: docker compose -f infrastructure/local/docker-compose.yaml up -d
+
+version: "3.8"
+
+services:
+  # ============================================
+  # 数据库 - PostgreSQL
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: dev_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../../migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  # ============================================
+  # 缓存 - Redis
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  # ============================================
+  # 消息队列 - NATS JetStream
+  # ============================================
+  nats:
+    image: nats:2-alpine
+    container_name: erp-nats
+    ports:
+      - "4222:4222"   # Client
+      - "8222:8222"   # HTTP Monitor
+    command: "--jetstream --store_dir /data --http_port 8222"
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  # ============================================
+  # 对象存储 - MinIO (S3 兼容)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: erp-minio
+    environment:
+      MINIO_ROOT_USER: local_dev_user
+      MINIO_ROOT_PASSWORD: local_dev_secret
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - erp-network
+
+  # ============================================
+  # AWS 模拟 - LocalStack
+  # ============================================
+  localstack:
+    image: localstack/localstack:latest
+    container_name: erp-localstack
+    environment:
+      SERVICES: sqs,sns,secretsmanager,kms
+      AWS_DEFAULT_REGION: us-east-1
+      EDGE_PORT: 4566
+      DOCKER_HOST: unix:///var/run/docker.sock
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - erp-network
+
+  # ============================================
+  # 邮件测试 - MailHog
+  # ============================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: erp-mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - erp-network
+
+  # ============================================
+  # 数据库管理 - pgAdmin (可选)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: erp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@erp.local
+      PGADMIN_DEFAULT_PASSWORD: pgadmin_secret
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - erp-network
+    profiles:
+      - tools
+
+  # ============================================
+  # Redis 管理 - Redis Commander (可选)
+  # ============================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: erp-redis-ui
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - erp-network
+    profiles:
+      - tools
+
+networks:
+  erp-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+  minio_data:
+  localstack_data:
