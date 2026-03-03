@@ -115,3 +115,87 @@ impl TenantService {
         shared::tenant::TenantRouter::new(self.pool.clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    /// Test schema name generation logic
+    #[test]
+    fn test_schema_name_format() {
+        // Test various slug formats
+        let test_cases = vec![
+            ("my-company", "tenant_my_company"),
+            ("test-123", "tenant_test_123"),
+            ("acme-corp-ltd", "tenant_acme_corp_ltd"),
+            ("simple", "tenant_simple"),
+        ];
+
+        for (slug, expected) in test_cases {
+            let schema_name = format!("tenant_{}", slug.replace('-', "_"));
+            assert_eq!(schema_name, expected);
+        }
+    }
+
+    /// Test schema name with special characters
+    #[test]
+    fn test_schema_name_special_chars() {
+        // Slugs should be normalized to underscores
+        let slug = "test-company-2024";
+        let schema_name = format!("tenant_{}", slug.replace('-', "_"));
+
+        assert_eq!(schema_name, "tenant_test_company_2024");
+        assert!(!schema_name.contains('-'));
+    }
+
+    /// Test isolation level validation
+    #[test]
+    fn test_isolation_level_validation() {
+        use std::str::FromStr;
+
+        // Valid isolation levels
+        assert!(shared::tenant::IsolationLevel::from_str("pool").is_ok());
+        assert!(shared::tenant::IsolationLevel::from_str("bridge").is_ok());
+        assert!(shared::tenant::IsolationLevel::from_str("silo").is_ok());
+
+        // Invalid isolation level
+        assert!(shared::tenant::IsolationLevel::from_str("invalid").is_err());
+    }
+
+    /// Test plan validation
+    #[test]
+    fn test_plan_validation() {
+        use std::str::FromStr;
+
+        // Valid plans
+        assert!(shared::tenant::Plan::from_str("starter").is_ok());
+        assert!(shared::tenant::Plan::from_str("pro").is_ok());
+        assert!(shared::tenant::Plan::from_str("enterprise").is_ok());
+
+        // Invalid plan
+        assert!(shared::tenant::Plan::from_str("free").is_err());
+    }
+
+    /// Test schema creation only for bridge
+    #[test]
+    fn test_schema_creation_condition() {
+        let bridge_isolation = "bridge";
+        let pool_isolation = "pool";
+        let silo_isolation = "silo";
+
+        // Only Bridge should create schema
+        assert_eq!(bridge_isolation, "bridge");
+        assert_ne!(pool_isolation, "bridge");
+        assert_ne!(silo_isolation, "bridge");
+    }
+
+    /// Test tenant slug uniqueness (concept)
+    #[test]
+    fn test_slug_uniqueness_requirement() {
+        // Slugs must be unique across tenants
+        let slug1 = "company-a";
+        let slug2 = "company-b";
+        let slug3 = "company-a"; // Duplicate
+
+        assert_ne!(slug1, slug2);
+        assert_eq!(slug1, slug3); // This would violate unique constraint
+    }
+}

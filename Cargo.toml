@@ -40,6 +40,7 @@ validator = { version = "0.20", features = ["derive"] }
 # Authentication
 jsonwebtoken = { version = "10.3", default-features = false, features = ["use_pem", "aws_lc_rs"] }
 argon2 = "0.5"
+rsa = "0.9"
 
 # Configuration
 config = "0.14"
@@ -95,6 +96,13 @@ reqwest = { version = "0.12", features = ["json"] }
 
 # Testing
 tokio-test = "0.4"
+testcontainers = "0.23"
+testcontainers-modules = { version = "0.11", features = ["postgres", "redis"] }
+wiremock = "0.6"
+fake = { version = "4.0", features = ["derive"] }
+proptest = "1.5"
+assert_matches = "1.5"
+pretty_assertions = "1.4"
 
 [profile.release]
 lto = true

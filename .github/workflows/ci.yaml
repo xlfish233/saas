@@ -50,17 +50,70 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests
-        run: cargo test --all-features --no-fail-fast
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run unit tests
+        run: cargo test --lib -- --no-fail-fast
         env:
-          DATABASE_URL: postgres://placeholder_user:placeholder_password@localhost:5432/placeholder_db
+          DATABASE_URL: postgres://testuser:placeholder@localhost:5432/test_db
+
+        # Unit tests don't need testcontainers, run in parallel
+      - name: Run integration tests with testcontainers
+        run: |
+          cargo test --test-threads=1 -- --ignored "auth-service,tenant-service,shared,api-gateway
+        env:
+          DATABASE_URL: postgres://testuser:placeholder@localhost:5432/test_db
           RUSTFLAGS: "-C instrument-coverage"
-          CARGO_INCREMENTAL_ARTIFACTS_DIR: target/debug/incremental
+          RUST_LOG: debug
+        if: matrix.os == 'ubuntu-latest'
 
       - name: Generate coverage report
         run: |
-          cargo install cargo-tarpaulin
-          cargo tarpaulin --out Xml --output-file cobertura.xml --skip-clean --engine llvm
+          cargo install cargo-tarpaulin --locked
+          cargo tarpaulin \
+            --workspace \
+            --out Xml \
+            --out lcov \
+            --out html \
+            --output-dir coverage \
+            --skip-clean \
+            --engine llvm \
+            --timeout 300 \
+        env:
+          RUSTFLAGS: "-C instrument-coverage"
+          RUST_LOG: debug
+
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/cobertura.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Coverage comment on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "✅ Test coverage report generated"
+          echo "Check ./coverage/cobertura.xml for details"
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Generate coverage report
+        run: |
+          cargo install cargo-tarpaulin --version 0.35.2 --locked
+          cargo tarpaulin --out Xml --output-dir . --skip-clean --engine llvm
         if: github.ref == 'refs/heads/main'
 
   # SAST Security Scan

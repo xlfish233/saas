@@ -27,3 +27,11 @@ opentelemetry.workspace = true
 opentelemetry-otlp.workspace = true
 opentelemetry_sdk.workspace = true
 tracing-opentelemetry.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+proptest.workspace = true
+assert_matches.workspace = true
+pretty_assertions.workspace = true
+rand.workspace = true
+rsa.workspace = true

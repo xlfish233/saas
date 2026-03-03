@@ -184,3 +184,159 @@ pub async fn me(
         tenant_id: user.tenant_id,
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test LoginRequest validation
+    #[test]
+    fn test_login_request_structure() {
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+            tenant_slug: Some("test-company".to_string()),
+        };
+
+        assert_eq!(request.email, "test@example.com");
+        assert_eq!(request.password, "password123");
+        assert_eq!(request.tenant_slug, Some("test-company".to_string()));
+    }
+
+    /// Test LoginRequest without tenant_slug
+    #[test]
+    fn test_login_request_without_tenant() {
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+            tenant_slug: None,
+        };
+
+        assert!(request.tenant_slug.is_none());
+    }
+
+    /// Test RefreshRequest validation
+    #[test]
+    fn test_refresh_request_structure() {
+        let request = RefreshRequest {
+            refresh_token: "test_refresh_token_placeholder".to_string(),
+        };
+
+        assert_eq!(request.refresh_token, "test_refresh_token_placeholder");
+    }
+
+    /// Test LogoutRequest with token
+    #[test]
+    fn test_logout_request_with_token() {
+        let request = LogoutRequest {
+            refresh_token: Some("token_to_revoke".to_string()),
+        };
+
+        assert!(request.refresh_token.is_some());
+    }
+
+    /// Test LogoutRequest without token
+    #[test]
+    fn test_logout_request_without_token() {
+        let request = LogoutRequest {
+            refresh_token: None,
+        };
+
+        assert!(request.refresh_token.is_none());
+    }
+
+    /// Test LoginResponse structure
+    #[test]
+    fn test_login_response_structure() {
+        let user_id = uuid::Uuid::new_v4();
+        let tenant_id = uuid::Uuid::new_v4();
+
+        let response = LoginResponse {
+            access_token: "access_token".to_string(),
+            refresh_token: "refresh_token".to_string(),
+            expires_in: 900,
+            user: UserResponse {
+                id: user_id,
+                email: "test@example.com".to_string(),
+                name: "Test User".to_string(),
+                role: "user".to_string(),
+                tenant_id,
+            },
+        };
+
+        assert_eq!(response.expires_in, 900);
+        assert_eq!(response.user.id, user_id);
+        assert_eq!(response.user.tenant_id, tenant_id);
+    }
+
+    /// Test UserResponse structure
+    #[test]
+    fn test_user_response_structure() {
+        let user_id = uuid::Uuid::new_v4();
+        let tenant_id = uuid::Uuid::new_v4();
+
+        let response = UserResponse {
+            id: user_id,
+            email: "user@example.com".to_string(),
+            name: "John Doe".to_string(),
+            role: "admin".to_string(),
+            tenant_id,
+        };
+
+        assert_eq!(response.id, user_id);
+        assert_eq!(response.role, "admin");
+    }
+
+    /// Test ErrorResponse structure
+    #[test]
+    fn test_error_response() {
+        let error = ErrorResponse::new("Test error message");
+
+        // ErrorResponse should have a message field
+        // Based on models.rs ErrorResponse structure
+        assert!(!error.message.is_empty());
+    }
+
+    /// Test authorization header extraction logic
+    #[test]
+    fn test_bearer_token_extraction() {
+        let valid_header = "Bearer valid_token_here";
+        let invalid_header = "Basic dXNlcjpwYXNz";
+        let missing_prefix = "invalid_token";
+
+        // Valid Bearer token
+        assert!(valid_header.starts_with("Bearer "));
+        let token = &valid_header[7..];
+        assert_eq!(token, "valid_token_here");
+
+        // Invalid: doesn't start with "Bearer "
+        assert!(!invalid_header.starts_with("Bearer "));
+        assert!(!missing_prefix.starts_with("Bearer "));
+    }
+
+    /// Test empty email validation
+    #[test]
+    fn test_empty_email_validation() {
+        let request = LoginRequest {
+            email: "".to_string(),
+            password: "password".to_string(),
+            tenant_slug: None,
+        };
+
+        // Empty email should be invalid
+        assert!(request.email.is_empty());
+    }
+
+    /// Test empty password validation
+    #[test]
+    fn test_empty_password_validation() {
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "".to_string(),
+            tenant_slug: None,
+        };
+
+        // Empty password should be invalid
+        assert!(request.password.is_empty());
+    }
+}

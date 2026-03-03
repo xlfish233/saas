@@ -26,3 +26,8 @@ http.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
+fake.workspace = true
+assert_matches.workspace = true
+pretty_assertions.workspace = true

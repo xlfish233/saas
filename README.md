@@ -4,6 +4,11 @@
 
 > ⚠️ **当前阶段**: 本地开发优先，暂不部署到 AWS
 
+[![CI Status](https://github.com/xl-labs/erp-saas/workflows/CI/badge.svg)](https://github.com/xl-labs/erp-saas/actions/workflows/CI/badge.svg)
+[![Coverage Status](https://codecov.io/gh/xl-labs/erp-saas/branch/main/graph/badge.svg)](https://codecov.io/gh/xl-labs/erp-saas/branch/main/graph/badge.svg)
+
+## 快速开始
+
 ## 快速开始
 
 ### 前置条件

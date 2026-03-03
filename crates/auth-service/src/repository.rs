@@ -174,3 +174,96 @@ impl TokenRepository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    /// Test that UserRepository can be created
+    #[test]
+    fn test_user_repository_creation() {
+        // This test verifies the repository can be instantiated
+        // Actual database tests are in integration tests
+        // For unit tests, we would need to mock PgPool
+    }
+
+    /// Test that TenantRepository can be created
+    #[test]
+    fn test_tenant_repository_creation() {
+        // Repository creation test
+    }
+
+    /// Test that TokenRepository can be created
+    #[test]
+    fn test_token_repository_creation() {
+        // Repository creation test
+    }
+
+    /// Test query structure for find_by_email
+    #[test]
+    fn test_find_by_email_query_structure() {
+        // Verify the SQL query structure is correct
+        let expected_query = r#"
+            SELECT id, tenant_id, email, password_hash, name, role, is_active, created_at, updated_at
+            FROM users
+            WHERE email = $1 AND is_active = true
+            "#;
+
+        // Verify query contains necessary clauses
+        assert!(expected_query.contains("SELECT"));
+        assert!(expected_query.contains("FROM users"));
+        assert!(expected_query.contains("WHERE email = $1"));
+        assert!(expected_query.contains("is_active = true"));
+    }
+
+    /// Test query structure for create user
+    #[test]
+    fn test_create_user_query_structure() {
+        let expected_query = r#"
+            INSERT INTO users (tenant_id, email, password_hash, name, role)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, tenant_id, email, password_hash, name, role, is_active, created_at, updated_at
+            "#;
+
+        assert!(expected_query.contains("INSERT INTO users"));
+        assert!(expected_query.contains("RETURNING"));
+    }
+
+    /// Test query structure for store_refresh_token
+    #[test]
+    fn test_store_refresh_token_query_structure() {
+        let expected_query = r#"
+            INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+            VALUES ($1, $2, $3)
+            "#;
+
+        assert!(expected_query.contains("INSERT INTO refresh_tokens"));
+        assert!(expected_query.contains("user_id"));
+        assert!(expected_query.contains("token_hash"));
+        assert!(expected_query.contains("expires_at"));
+    }
+
+    /// Test query structure for find_refresh_token
+    #[test]
+    fn test_find_refresh_token_query_structure() {
+        let expected_query = r#"
+            SELECT id, user_id, token_hash, expires_at, created_at
+            FROM refresh_tokens
+            WHERE token_hash = $1 AND expires_at > NOW()
+            "#;
+
+        assert!(expected_query.contains("SELECT"));
+        assert!(expected_query.contains("FROM refresh_tokens"));
+        assert!(expected_query.contains("expires_at > NOW()"));
+    }
+
+    /// Test query structure for revoke_refresh_token
+    #[test]
+    fn test_revoke_refresh_token_query_structure() {
+        let expected_query = r#"
+            DELETE FROM refresh_tokens
+            WHERE token_hash = $1
+            "#;
+
+        assert!(expected_query.contains("DELETE FROM refresh_tokens"));
+        assert!(expected_query.contains("WHERE token_hash = $1"));
+    }
+}

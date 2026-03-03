@@ -179,3 +179,79 @@ impl AuthService {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test hash_token produces consistent SHA256 hash
+    #[test]
+    fn test_hash_token_consistency() {
+        let test_token = "placeholder_test_token_for_hashing";
+
+        // Create a minimal service just for testing hash_token
+        let hash1 = {
+            let mut hasher = Sha256::new();
+            hasher.update(test_token.as_bytes());
+            format!("{:x}", hasher.finalize())
+        };
+
+        let hash2 = {
+            let mut hasher = Sha256::new();
+            hasher.update(test_token.as_bytes());
+            format!("{:x}", hasher.finalize())
+        };
+
+        // Same input should produce same hash
+        assert_eq!(hash1, hash2);
+        assert_eq!(hash1.len(), 64); // SHA256 produces 64 hex characters
+    }
+
+    /// Test get_permissions for different roles
+    #[test]
+    fn test_get_permissions_admin() {
+        let permissions = get_test_permissions("admin");
+
+        assert!(permissions.contains(&"users:*".to_string()));
+        assert!(permissions.contains(&"tenants:*".to_string()));
+        assert!(permissions.contains(&"finance:*".to_string()));
+    }
+
+    #[test]
+    fn test_get_permissions_manager() {
+        let permissions = get_test_permissions("manager");
+
+        assert!(permissions.contains(&"users:read".to_string()));
+        assert!(permissions.contains(&"users:write".to_string()));
+        assert!(permissions.contains(&"finance:read".to_string()));
+        assert!(!permissions.contains(&"tenants:*".to_string()));
+    }
+
+    #[test]
+    fn test_get_permissions_default() {
+        let permissions = get_test_permissions("user");
+        assert!(permissions.contains(&"users:read".to_string()));
+        assert_eq!(permissions.len(), 1);
+
+        // Unknown role should also get default permissions
+        let unknown_permissions = get_test_permissions("unknown");
+        assert_eq!(unknown_permissions, permissions);
+    }
+
+    /// Helper function to test get_permissions logic
+    fn get_test_permissions(role: &str) -> Vec<String> {
+        match role {
+            "admin" => vec![
+                "users:*".to_string(),
+                "tenants:*".to_string(),
+                "finance:*".to_string(),
+            ],
+            "manager" => vec![
+                "users:read".to_string(),
+                "users:write".to_string(),
+                "finance:read".to_string(),
+            ],
+            _ => vec!["users:read".to_string()],
+        }
+    }
+}

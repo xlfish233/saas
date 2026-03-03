@@ -45,3 +45,6 @@ http.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
+wiremock.workspace = true
+fake.workspace = true
+pretty_assertions.workspace = true
