@@ -40,8 +40,6 @@ async fn main() -> anyhow::Result<()> {
         .connect(&config.database.url)
         .await?;
 
-    sqlx::migrate!("../../migrations").run(&db).await?;
-
     let tenant_service = Arc::new(TenantService::new(db.clone()));
 
     let state = AppState {

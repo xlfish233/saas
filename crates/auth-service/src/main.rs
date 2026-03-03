@@ -43,9 +43,6 @@ async fn main() -> anyhow::Result<()> {
         .connect(&config.database.url)
         .await?;
 
-    // Run migrations
-    sqlx::migrate!("../../migrations").run(&db).await?;
-
     // Connect to Redis
     let redis = redis::Client::open(config.redis.url.as_str())?;
 

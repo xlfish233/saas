@@ -5,12 +5,13 @@ members = [
     "crates/auth-service",
     "crates/tenant-service",
     "crates/shared",
+    "crates/sqlx-shim",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.85"
 authors = ["ERP SaaS Team"]
 license = "MIT"
 
@@ -26,7 +27,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
 
 # Database
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "time", "json", "chrono"] }
+sqlx = { path = "crates/sqlx-shim" }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -34,10 +35,10 @@ serde_json = "1.0"
 serde_with = "3.0"
 
 # Validation
-validator = { version = "0.18", features = ["derive"] }
+validator = { version = "0.20", features = ["derive"] }
 
 # Authentication
-jsonwebtoken = "9.0"
+jsonwebtoken = { version = "10.3", default-features = false, features = ["use_pem", "aws_lc_rs"] }
 argon2 = "0.5"
 
 # Configuration
@@ -53,7 +54,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
 # Metrics
-prometheus = "0.13"
+prometheus = { version = "0.14", default-features = false }
 
 # OpenTelemetry
 opentelemetry = { version = "0.27", features = ["metrics", "trace"] }

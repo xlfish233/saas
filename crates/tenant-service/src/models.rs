@@ -1,11 +1,12 @@
 //! Data models for tenant service
 
 use serde::Serialize;
+use sqlx::{postgres::PgRow, FromRow, Row};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 /// Tenant database model
-#[derive(Debug, Clone, sqlx::FromRow)]
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Tenant {
     pub id: Uuid,
@@ -18,6 +19,23 @@ pub struct Tenant {
     pub database_url: Option<String>,
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
+}
+
+impl<'r> FromRow<'r, PgRow> for Tenant {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            slug: row.try_get("slug")?,
+            isolation_level: row.try_get("isolation_level")?,
+            plan: row.try_get("plan")?,
+            is_active: row.try_get("is_active")?,
+            schema_name: row.try_get("schema_name")?,
+            database_url: row.try_get("database_url")?,
+            created_at: row.try_get("created_at")?,
+            updated_at: row.try_get("updated_at")?,
+        })
+    }
 }
 
 /// Tenant response DTO

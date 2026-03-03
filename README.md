@@ -9,7 +9,7 @@
 ### 前置条件
 
 - Docker & Docker Compose
-- Rust 1.75+
+- Rust 1.85+
 - sqlx-cli (`cargo install sqlx-cli`)
 - just (可选, `cargo binstall just`)
 - prek (可选, `cargo binstall prek`)
@@ -159,6 +159,7 @@ just dev-up               # 启动本地基础设施
 just dev-down             # 停止本地基础设施
 just test                 # 运行测试
 just lint                 # 代码检查
+just audit                # 依赖安全审计
 just db-migrate           # 数据库迁移
 just db-rollback          # 回滚迁移
 just docker-build         # 构建镜像

@@ -96,8 +96,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Cargo Audit
         run: |
-          cargo install cargo-audit
-          cargo audit
+          cargo install cargo-audit --locked
+          cargo audit --deny warnings
 
   # Build and Scan
   build-and-scan:

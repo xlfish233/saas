@@ -1,0 +1,10 @@
+[package]
+name = "sqlx"
+version = "0.8.6"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+sqlx-core = { version = "=0.8.6", default-features = false, features = ["_rt-tokio", "chrono", "uuid", "time", "json"] }
+sqlx-postgres = { version = "=0.8.6", default-features = false, features = ["chrono", "uuid", "time", "json"] }

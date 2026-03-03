@@ -61,6 +61,11 @@ lint:
     cargo clippy --all-targets -- -D warnings
     cargo fmt --check
 
+# 依赖安全审计
+audit:
+    echo "🔐 运行依赖安全审计..."
+    cargo audit --deny warnings
+
 # ============================================
 # 数据库迁移
 # ============================================

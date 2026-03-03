@@ -2,23 +2,6 @@
 # TODO: Review and update dependencies before production
 
 [advisories]
-ignore = [
-    # idna vulnerability in transitive dependencies
-    # https://rustsec.org/advisories/RUSTSEC-2024-0421
-    "RUSTSEC-2024-0421",
-
-    # protobuf vulnerability - memory safety issues
-    # https://rustsec.org/advisories/RUSTSEC-2024-0437
-    "RUSTSEC-2024-0437",
-
-    # rsa vulnerability - timing attack in non-preferred padding modes
-    # https://rustsec.org/advisories/RUSTSEC-2023-0071
-    "RUSTSEC-2023-0071",
-
-    # proc-macro-error is unmaintained
-    # https://rustsec.org/advisories/RUSTSEC-2024-0370
-    "RUSTSEC-2024-0370",
-]
 informational_warnings = ["unmaintained"]
 
 [yanked]
