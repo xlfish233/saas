@@ -7,21 +7,32 @@
 
 #![allow(dead_code)]
 
+use std::time::Duration;
+
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
+use tokio::time::timeout;
 use uuid::Uuid;
+
+const CONTAINER_START_TIMEOUT: Duration = Duration::from_secs(60);
+const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Setup test database with testcontainers
 pub async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres>) {
-    let container = Postgres::default()
-        .with_user("testuser")
-        .with_password("placeholder")
-        .with_db_name("test_db")
-        .start()
-        .await
-        .expect("Failed to start Postgres container");
+    // Start PostgreSQL container with timeout
+    let container = timeout(
+        CONTAINER_START_TIMEOUT,
+        Postgres::default()
+            .with_user("testuser")
+            .with_password("placeholder")
+            .with_db_name("test_db")
+            .start(),
+    )
+    .await
+    .expect("Timeout waiting for Postgres container to start")
+    .expect("Failed to start Postgres container");
 
     let connection_string = format!(
         "postgres://testuser:placeholder@127.0.0.1:{}/test_db",
@@ -31,11 +42,17 @@ pub async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres
             .expect("Failed to get port")
     );
 
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&connection_string)
-        .await
-        .expect("Failed to connect to test database");
+    // Create connection pool with timeout
+    let pool = timeout(
+        DB_CONNECT_TIMEOUT,
+        PgPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&connection_string),
+    )
+    .await
+    .expect("Timeout connecting to test database")
+    .expect("Failed to connect to test database");
 
     run_migrations(&pool).await;
 
@@ -44,6 +61,12 @@ pub async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres
 
 /// Run database migrations
 async fn run_migrations(pool: &PgPool) {
+    // Create pgcrypto extension for gen_random_uuid()
+    sqlx::query("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+        .execute(pool)
+        .await
+        .expect("Failed to create pgcrypto extension");
+
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tenants (
@@ -58,15 +81,22 @@ async fn run_migrations(pool: &PgPool) {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             deleted_at TIMESTAMPTZ
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug);
-        CREATE INDEX IF NOT EXISTS idx_tenants_is_active ON tenants(is_active);
+        )
         "#,
     )
     .execute(pool)
     .await
-    .expect("Failed to run migrations");
+    .expect("Failed to create tenants table");
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug)")
+        .execute(pool)
+        .await
+        .expect("Failed to create idx_tenants_slug");
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_tenants_is_active ON tenants(is_active)")
+        .execute(pool)
+        .await
+        .expect("Failed to create idx_tenants_is_active");
 }
 
 /// Helper to create a test tenant

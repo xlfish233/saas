@@ -18,9 +18,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../../migrations:/docker-entrypoint-initdb.d:ro
+      - ../../migrations:/docker-entrypoint-initdb.d:to
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d dev_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -96,7 +96,7 @@ services:
     image: localstack/localstack:latest
     container_name: erp-localstack
     environment:
-      SERVICES: sqs,sns,secretsmanager,kms
+      SERVICES: sqs,sns,secretsmanager,km
       AWS_DEFAULT_REGION: us-east-1
       EDGE_PORT: 4566
       DOCKER_HOST: unix:///var/run/docker.sock

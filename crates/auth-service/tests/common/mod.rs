@@ -5,26 +5,36 @@
 //! - Database migration helpers
 //! - Test fixtures and factories
 
+use std::time::Duration;
+
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 use testcontainers_modules::redis::Redis;
+use tokio::time::timeout;
 use uuid::Uuid;
+
+const CONTAINER_START_TIMEOUT: Duration = Duration::from_secs(60);
+const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Setup test database with testcontainers
 ///
 /// Returns a connection pool and container handle.
 /// The container will be cleaned up when the handle is dropped.
 pub async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres>) {
-    // Start PostgreSQL container
-    let container = Postgres::default()
-        .with_user("testuser")
-        .with_password("placeholder")
-        .with_db_name("test_db")
-        .start()
-        .await
-        .expect("Failed to start Postgres container");
+    // Start PostgreSQL container with timeout
+    let container = timeout(
+        CONTAINER_START_TIMEOUT,
+        Postgres::default()
+            .with_user("testuser")
+            .with_password("placeholder")
+            .with_db_name("test_db")
+            .start(),
+    )
+    .await
+    .expect("Timeout waiting for Postgres container to start")
+    .expect("Failed to start Postgres container");
 
     let connection_string = format!(
         "postgres://testuser:placeholder@127.0.0.1:{}/test_db",
@@ -34,12 +44,17 @@ pub async fn setup_test_db() -> (PgPool, testcontainers::ContainerAsync<Postgres
             .expect("Failed to get port")
     );
 
-    // Create connection pool
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&connection_string)
-        .await
-        .expect("Failed to connect to test database");
+    // Create connection pool with timeout
+    let pool = timeout(
+        DB_CONNECT_TIMEOUT,
+        PgPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&connection_string),
+    )
+    .await
+    .expect("Timeout connecting to test database")
+    .expect("Failed to connect to test database");
 
     // Run migrations
     run_migrations(&pool).await;
@@ -72,6 +87,13 @@ pub async fn setup_test_redis() -> (redis::Client, testcontainers::ContainerAsyn
 async fn run_migrations(pool: &PgPool) {
     // For now, we'll create tables manually
     // In production, use sqlx::migrate!() macro
+
+    // Create pgcrypto extension for gen_random_uuid()
+    sqlx::query("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+        .execute(pool)
+        .await
+        .expect("Failed to create pgcrypto extension");
+
     sqlx::query(
         r#"
         CREATE TABLE IF NOT EXISTS tenants (
@@ -86,8 +108,15 @@ async fn run_migrations(pool: &PgPool) {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             deleted_at TIMESTAMPTZ
-        );
+        )
+        "#,
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to create tenants table");
 
+    sqlx::query(
+        r#"
         CREATE TABLE IF NOT EXISTS users (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             email TEXT NOT NULL UNIQUE,
@@ -98,8 +127,15 @@ async fn run_migrations(pool: &PgPool) {
             is_active BOOLEAN NOT NULL DEFAULT true,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
+        )
+        "#,
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to create users table");
 
+    sqlx::query(
+        r#"
         CREATE TABLE IF NOT EXISTS refresh_tokens (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -107,16 +143,29 @@ async fn run_migrations(pool: &PgPool) {
             expires_at TIMESTAMPTZ NOT NULL,
             revoked BOOLEAN NOT NULL DEFAULT false,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id);
-        CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
-        CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+        )
         "#,
     )
     .execute(pool)
     .await
-    .expect("Failed to run migrations");
+    .expect("Failed to create refresh_tokens table");
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_users_tenant_id ON users(tenant_id)")
+        .execute(pool)
+        .await
+        .expect("Failed to create idx_users_tenant_id");
+
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id)")
+        .execute(pool)
+        .await
+        .expect("Failed to create idx_refresh_tokens_user_id");
+
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash)",
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to create idx_refresh_tokens_token_hash");
 }
 
 /// Helper to create a test user
