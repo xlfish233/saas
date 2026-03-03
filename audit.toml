@@ -19,4 +19,8 @@ ignore = [
     # https://rustsec.org/advisories/RUSTSEC-2024-0370
     "RUSTSEC-2024-0370",
 ]
-yanked = true
+informational_warnings = ["unmaintained"]
+
+[yanked]
+enabled = true
+update_index = true
