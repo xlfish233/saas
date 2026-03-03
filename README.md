@@ -11,7 +11,7 @@
 - Docker & Docker Compose
 - Rust 1.75+
 - sqlx-cli (`cargo install sqlx-cli`)
-- Make (可选)
+- just (可选, `cargo binstall just`)
 - prek (可选, `cargo binstall prek`)
 
 ### 1. 本地开发 (推荐)
@@ -24,7 +24,7 @@
 prek install
 
 # 启动基础设施 (PostgreSQL, Redis, NATS, MinIO, LocalStack)
-make dev-up
+just dev-up
 
 # 等待服务启动 (约 10 秒)
 sleep 10
@@ -43,11 +43,9 @@ curl http://localhost:8080/health
 
 ```bash
 # 安装 k3s 并部署
-make k3s-setup
-make k3s-deploy
-```
-
-### ~~3. AWS EKS 生产部署~~
+just k3s-setup
+just k3s-deploy
+```### ~~3. AWS EKS 生产部署~~
 
 > ⚠️ **暂不支持** - 当前专注于本地开发环境，AWS 部署配置仅供参考
 
@@ -156,17 +154,17 @@ prek run --all-files
 ## 常用命令
 
 ```bash
-make help                 # 显示所有命令
-make dev-up               # 启动本地基础设施
-make dev-down             # 停止本地基础设施
-make test                 # 运行测试
-make lint                 # 代码检查
-make db-migrate           # 数据库迁移
-make db-rollback          # 回滚迁移
-make docker-build         # 构建镜像
-make k3s-deploy           # 部署到 K3s
-make tf-plan              # Terraform 计划
-make tf-apply             # Terraform 应用
+just --list              # 显示所有命令
+just dev-up               # 启动本地基础设施
+just dev-down             # 停止本地基础设施
+just test                 # 运行测试
+just lint                 # 代码检查
+just db-migrate           # 数据库迁移
+just db-rollback          # 回滚迁移
+just docker-build         # 构建镜像
+just k3s-deploy           # 部署到 K3s
+just tf-plan              # Terraform 计划
+just tf-apply             # Terraform 应用
 ```
 
 ## License

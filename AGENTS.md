@@ -134,25 +134,24 @@ async fn handler(
 
 ```bash
 # 本地开发
-make dev-up              # 启动基础设施 (Docker Compose)
-make dev-down            # 停止基础设施
-make dev                 # 启动开发服务器 (cargo watch)
-make test                # 运行测试
-make test-coverage      # 生成测试覆盖率报告
-make lint                # 代码检查 (cargo clippy)
+just dev-up              # 启动基础设施 (Docker Compose)
+just dev-down            # 停止基础设施
+just dev                 # 启动开发服务器
+just test                # 运行测试
+just test-coverage      # 生成测试覆盖率报告
+just lint                # 代码检查 (cargo clippy)
 
 # 数据库
-make db-migrate          # 运行迁移
-make db-rollback         # 回滚迁移
-make db-reset            # 重置数据库
+just db-migrate          # 运行迁移
+just db-rollback         # 回滚迁移
+just db-reset            # 重置数据库
 
 # Docker
-make docker-build        # 构建镜像
-make docker-run          # 运行容器
+just docker-build        # 构建镜像
 
 # Kubernetes (可选)
-make k3s-setup           # 安装 K3s
-make k3s-deploy          # 部署到 K3s
+just k3s-setup           # 安装 K3s
+just k3s-deploy          # 部署到 K3s
 ```
 
 ### Git Hooks (prek)
