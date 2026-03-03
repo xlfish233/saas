@@ -50,8 +50,8 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests with coverage
-        run: cargo test --all-features --no-fail-fast -- -Z unstable-options --profile=ci
+      - name: Run tests
+        run: cargo test --all-features --no-fail-fast
         env:
           DATABASE_URL: postgres://placeholder_user:placeholder_password@localhost:5432/placeholder_db
           RUSTFLAGS: "-C instrument-coverage"
