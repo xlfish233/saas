@@ -64,7 +64,19 @@ dev:
 
 test:
 	@echo "🧪 运行测试..."
-	cargo test --all-features
+	cargo test --all-features --no-fail-fast
+
+test-coverage:
+	@echo "📊 生成测试覆盖率报告..."
+	cargo tarpaulin --out Xml --output-file cobertura.xml --out Html --output-file tarpaulin-report.html --skip-clean --engine llvm
+
+test-coverage-view:
+	@echo "👀 打开覆盖率报告..."
+	@if [ ! -f tarpaulin-report.html ]; then \
+		echo "Error: tarpaulin-report.html not found. Run 'make test-coverage' first."; \
+		exit 1; \
+	@ ; fi
+	open tarpaulin-report.html
 
 lint:
 	@echo "🔍 代码检查..."

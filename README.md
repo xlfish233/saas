@@ -12,12 +12,16 @@
 - Rust 1.75+
 - sqlx-cli (`cargo install sqlx-cli`)
 - Make (可选)
+- pre-commit (可选, `pip install pre-commit` 或 `brew install pre-commit`)
 
 ### 1. 本地开发 (推荐)
 
 ```bash
 # 安装依赖并生成配置
 ./scripts/setup.sh
+
+# 可选：安装 pre-commit hooks
+pre-commit install
 
 # 启动基础设施 (PostgreSQL, Redis, NATS, MinIO, LocalStack)
 make dev-up
@@ -116,6 +120,34 @@ make k3s-deploy
 - **容器编排**: Kubernetes (EKS)
 - **服务网格**: Istio (可选)
 - **监控**: Prometheus + Grafana + OpenTelemetry
+
+## 开发工具
+
+### Pre-commit Hooks
+
+项目使用 [pre-commit](https://pre-commit.com/) 框架在每次提交前自动运行代码质量检查。
+
+**安装**:
+```bash
+# 安装 pre-commit
+pip install pre-commit
+
+# 安装 git hooks
+pre-commit install
+
+# (可选) 手动运行所有 hooks
+pre-commit run --all-files
+```
+
+**自动运行的检查**:
+- `cargo fmt` - 代码格式化
+- `cargo clippy` - Linting 检查
+- `cargo test` - 单元测试（本地）
+- 文件大小检查
+- 拼写错误检查
+- 行尾空白检查
+
+> **注意**: `cargo test` 在 CI 中会被跳过以节省时间，本地开发时建议手动运行测试。
 
 ## 常用命令
 

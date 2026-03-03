@@ -21,8 +21,8 @@ thiserror.workspace = true
 anyhow.workspace = true
 config.workspace = true
 
-argon2 = "0.5"
-jsonwebtoken = "0.12"
+argon2.workspace = true
+jsonwebtoken.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true

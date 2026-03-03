@@ -138,6 +138,7 @@ make dev-up              # 启动基础设施 (Docker Compose)
 make dev-down            # 停止基础设施
 make dev                 # 启动开发服务器 (cargo watch)
 make test                # 运行测试
+make test-coverage      # 生成测试覆盖率报告
 make lint                # 代码检查 (cargo clippy)
 
 # 数据库
@@ -153,6 +154,25 @@ make docker-run          # 运行容器
 make k3s-setup           # 安装 K3s
 make k3s-deploy          # 部署到 K3s
 ```
+
+### Pre-commit Hooks
+
+项目配置了 pre-commit hooks 用于自动代码质量检查。**在首次修改文件前**应确保 hooks 已安装。
+
+**安装**:
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+**Hooks 包括**:
+- `cargo fmt` - 代码格式化
+- `cargo clippy` - Lint 检查
+- `cargo test` - 单元测试（本地开发时手动运行）
+- 文件大小检查
+- 拼写错误检查
+
+> **注意**: 首次修改文件前请运行 `pre-commit install`，否则提交会失败。
 
 ## 关键技术决策
 

@@ -90,6 +90,9 @@ utoipa-swagger-ui = { version = "8.0", features = ["axum"] }
 # HTTP Client
 reqwest = { version = "0.12", features = ["json"] }
 
+# Testing
+tokio-test = "0.4"
+
 [profile.release]
 lto = true
 codegen-units = 1

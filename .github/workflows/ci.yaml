@@ -50,11 +50,18 @@ jobs:
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
 
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Run tests with coverage
+        run: cargo test --all-features --no-fail-fast -- -Z unstable-options --profile=ci
         env:
           DATABASE_URL: postgres://placeholder_user:placeholder_password@localhost:5432/placeholder_db
-          REDIS_URL: redis://localhost:6379
+          RUSTFLAGS: "-C instrument-coverage"
+          CARGO_INCREMENTAL_ARTIFACTS_DIR: target/debug/incremental
+
+      - name: Generate coverage report
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out Xml --output-file cobertura.xml --skip-clean --engine llvm
+        if: github.ref == 'refs/heads/main'
 
   # SAST Security Scan
   sast:

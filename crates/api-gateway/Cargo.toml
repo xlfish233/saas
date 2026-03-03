@@ -41,4 +41,4 @@ opentelemetry-otlp.workspace = true
 tracing-opentelemetry.workspace = true
 
 [dev-dependencies]
-tokio-test = "0.4"
+tokio-test.workspace = true
