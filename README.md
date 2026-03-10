@@ -3,11 +3,15 @@
 云原生多租户 ERP SaaS 平台，基于 Rust 构建的后端服务。
 
 > ⚠️ **当前阶段**: 本地开发优先，暂不部署到 AWS
+>
+> **开发进度**:
+> - ✅ 认证模块 (auth-service) 已完成并通过 e2e 测试
+> - ✅ 租户管理基础框架完成
+> - ✅ API 网关认证代理完成
+> - 🚧 完善网关路由与限流功能
 
 [![CI Status](https://github.com/xl-labs/erp-saas/workflows/CI/badge.svg)](https://github.com/xl-labs/erp-saas/actions/workflows/CI/badge.svg)
 [![Coverage Status](https://codecov.io/gh/xl-labs/erp-saas/branch/main/graph/badge.svg)](https://codecov.io/gh/xl-labs/erp-saas/branch/main/graph/badge.svg)
-
-## 快速开始
 
 ## 快速开始
 
@@ -36,12 +40,20 @@ sleep 10
 # 运行数据库迁移
 just db-migrate
 
-# 启动 API 服务
+# 启动 API 网关 (端口 8080)
 just dev
+
+# 在另一个终端启动认证服务 (端口 8081)
+cargo run --bin auth-service
 
 # 测试
 curl http://localhost:8080/health
+curl http://localhost:8081/health
 ```
+
+**服务端口配置**:
+- API Gateway: 8080 (通过 `SERVER__PORT` 环境变量配置)
+- Auth Service: 8081 (api-gateway 通过 `AUTH_SERVICE__URL=http://127.0.0.1:8081` 调用)
 
 ### 2. K3s 本地 Kubernetes (可选)
 
