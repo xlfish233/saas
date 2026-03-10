@@ -118,3 +118,10 @@ debug = true
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[workspace.metadata.crane-audit]
+ignore = [
+    "RUSTSEC-2023-0071",  # rsa: Marvin Attack - no fix available
+    "RUSTSEC-2025-0111",  # tokio-tar: PAX header parsing - testcontainers dependency
+    "RUSTSEC-2025-0134",  # rustls-pemfile: unmaintained - testcontainers dependency
+]

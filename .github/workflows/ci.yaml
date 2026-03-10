@@ -153,7 +153,10 @@ jobs:
       - name: Cargo Audit
         run: |
           cargo install cargo-audit --locked
-          cargo audit --deny warnings
+          cargo audit --deny warnings \
+            --ignore RUSTSEC-2023-0071 \
+            --ignore RUSTSEC-2025-0111 \
+            --ignore RUSTSEC-2025-0134
 
   # Build and Scan
   build-and-scan:
