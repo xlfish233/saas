@@ -271,6 +271,7 @@ impl FeatureService {
         if feature.rollout_percentage < 100 {
             // Use tenant_id as the hash key for consistent rollout
             let hash = Self::hash_tenant_id(tenant_id);
+            #[allow(clippy::cast_possible_truncation)]
             let threshold = (feature.rollout_percentage as u64 * u64::MAX / 100) as u64;
 
             if hash > threshold {
