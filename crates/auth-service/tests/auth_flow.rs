@@ -159,22 +159,30 @@ async fn logout_revokes_refresh_token() {
     .await
     .expect("Failed to store refresh token");
 
-    // Revoke token
-    sqlx::query("UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1")
+    // Verify token exists before revocation
+    let count_before: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM refresh_tokens WHERE token_hash = $1")
+            .bind(token_hash)
+            .fetch_one(&pool)
+            .await
+            .expect("Failed to count tokens before revocation");
+    assert_eq!(count_before, 1);
+
+    // Revoke token (using DELETE, matching repository implementation)
+    sqlx::query("DELETE FROM refresh_tokens WHERE token_hash = $1")
         .bind(token_hash)
         .execute(&pool)
         .await
         .expect("Failed to revoke token");
 
-    // Verify token is revoked
-    let is_revoked: bool =
-        sqlx::query_scalar("SELECT revoked FROM refresh_tokens WHERE token_hash = $1")
+    // Verify token is deleted (revoked)
+    let count_after: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM refresh_tokens WHERE token_hash = $1")
             .bind(token_hash)
             .fetch_one(&pool)
             .await
-            .expect("Failed to check revocation status");
-
-    assert!(is_revoked);
+            .expect("Failed to count tokens after revocation");
+    assert_eq!(count_after, 0);
 
     cleanup_test_data(&pool).await;
 }

@@ -30,6 +30,9 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Load environment variables from .env file
+    dotenvy::dotenv().ok();
+
     // Load configuration
     let config = AppConfig::load()?;
     shared::telemetry::init_tracing("auth-service");

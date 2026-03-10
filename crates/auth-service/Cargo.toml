@@ -26,6 +26,7 @@ argon2.workspace = true
 jsonwebtoken.workspace = true
 redis.workspace = true
 sha2.workspace = true
+dotenvy.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
