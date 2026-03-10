@@ -5,16 +5,31 @@ use axum::{
     Router,
 };
 use http::{header, HeaderName, Method};
+use shared::auth::JwtService;
+use shared::middleware::RateLimiter;
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     request_id::{MakeRequestUuid, SetRequestIdLayer},
     trace::TraceLayer,
 };
 
+mod auth_proxy;
 mod config;
 mod routes;
 mod telemetry;
+
+/// Application state shared across handlers
+#[derive(Clone)]
+pub(crate) struct AppState {
+    pub(crate) config: Arc<config::Config>,
+    pub(crate) jwt_service: Arc<JwtService>,
+    pub(crate) http_client: reqwest::Client,
+    #[allow(dead_code)]
+    pub(crate) rate_limiter: RateLimiter,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -28,46 +43,60 @@ async fn main() -> anyhow::Result<()> {
     let config = config::Config::from_env()?;
     tracing::info!(
         "Starting API Gateway on {}:{}",
-        config.host(),
-        config.port()
+        config.server.host,
+        config.server.port
     );
 
-    let mut migration_settings = config.database.migration.clone();
-    migration_settings.role = shared::db::MigrationRole::Owner;
+    // Initialize JWT service for token validation
+    let jwt_service = JwtService::from_files(
+        &config.jwt.private_key_path,
+        &config.jwt.public_key_path,
+        config.jwt.issuer.clone(),
+        config.jwt.audience.clone(),
+        config.jwt.access_token_expiry_seconds as i64,
+        config.jwt.refresh_token_expiry_seconds as i64,
+    )?;
+    tracing::info!("JWT service initialized");
 
-    let db_pool = shared::db::connect_with_retry(
-        &config.database.url,
-        config.database.pool_size,
-        &migration_settings,
-    )
-    .await?;
+    // Create HTTP client for proxying to auth-service
+    let http_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()?;
 
-    let migration_status =
-        shared::db::run_startup_migration_or_verify(&db_pool, &migration_settings).await?;
-    tracing::info!(
-        role = ?migration_status.role,
-        current_version = migration_status.current_version,
-        required_version = migration_status.required_version,
-        "database migration check completed"
-    );
+    // Create rate limiter
+    let rate_limiter = shared::middleware::default_rate_limiter();
+
+    // Build state
+    let state = AppState {
+        config: Arc::new(config.clone()),
+        jwt_service: Arc::new(jwt_service),
+        http_client,
+        rate_limiter,
+    };
 
     // Configure CORS from environment
     let cors = build_cors_layer(&config);
 
-    // Build router
+    // Build router with layered middleware
     let app = Router::new()
         .route("/health", get(health))
         .route("/ready", get(ready))
+        // Auth routes (public, but rate-limited)
         .route("/api/v1/auth/login", post(routes::auth::login))
+        .route("/api/v1/auth/register", post(routes::auth::register))
         .route("/api/v1/auth/refresh", post(routes::auth::refresh))
+        .route("/api/v1/auth/logout", post(routes::auth::logout))
+        // Protected routes
+        .route("/api/v1/auth/me", get(routes::auth::me))
         .route("/api/v1/tenants", get(routes::tenants::list))
         .route("/api/v1/tenants/{id}", get(routes::tenants::get))
+        .with_state(state)
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(TraceLayer::new_for_http())
         .layer(cors);
 
     // Start server
-    let addr: SocketAddr = format!("{}:{}", config.host(), config.port()).parse()?;
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port).parse()?;
 
     tracing::info!("Server listening on {}", addr);
 

@@ -88,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/health", get(health))
         .route("/ready", get(ready))
         .route("/auth/login", post(handlers::login))
+        .route("/auth/register", post(handlers::register))
         .route("/auth/logout", post(handlers::logout))
         .route("/auth/refresh", post(handlers::refresh))
         .route("/auth/me", get(handlers::me))

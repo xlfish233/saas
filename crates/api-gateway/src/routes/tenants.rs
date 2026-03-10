@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::AppState;
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Tenant {
     pub id: Uuid,
@@ -33,8 +35,9 @@ pub struct TenantList {
         (status = 200, description = "List of tenants", body = TenantList)
     )
 )]
-pub async fn list(State(_state): State<()>) -> Json<TenantList> {
+pub async fn list(State(_state): State<AppState>) -> Json<TenantList> {
     // TODO: Implement actual tenant listing
+    // Can now access state.jwt_service, state.config, state.http_client
     Json(TenantList {
         tenants: vec![],
         total: 0,
@@ -50,7 +53,7 @@ pub async fn list(State(_state): State<()>) -> Json<TenantList> {
     )
 )]
 pub async fn get(
-    State(_state): State<()>,
+    State(_state): State<AppState>,
     Path(_id): Path<Uuid>,
 ) -> Result<Json<Tenant>, StatusCode> {
     // TODO: Implement actual tenant retrieval

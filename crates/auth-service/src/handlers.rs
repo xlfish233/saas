@@ -13,6 +13,20 @@ pub struct LoginRequest {
     pub tenant_slug: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RegisterRequest {
+    pub email: String,
+    pub password: String,
+    pub name: String,
+    pub tenant_id: uuid::Uuid,
+    #[serde(default = "default_role")]
+    pub role: String,
+}
+
+fn default_role() -> String {
+    "user".to_string()
+}
+
 #[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub access_token: String,
@@ -47,6 +61,89 @@ pub async fn login(
             )
         })?;
 
+    let (access_token, refresh_token) =
+        state
+            .auth_service
+            .generate_tokens(&user)
+            .await
+            .map_err(|e| {
+                tracing::error!("Token generation failed: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse::new("Internal error")),
+                )
+            })?;
+
+    Ok(Json(LoginResponse {
+        access_token,
+        refresh_token,
+        expires_in: state.config.jwt.access_token_expiry_seconds,
+        user: UserResponse {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            tenant_id: user.tenant_id,
+        },
+    }))
+}
+
+/// Register new user endpoint
+pub async fn register(
+    State(state): State<AppState>,
+    Json(req): Json<RegisterRequest>,
+) -> Result<Json<LoginResponse>, (StatusCode, Json<ErrorResponse>)> {
+    // Check if user already exists
+    if let Some(_existing) = state
+        .auth_service
+        .find_by_email(&req.email)
+        .await
+        .map_err(|e| {
+            tracing::error!("Database error during registration: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new("Internal error")),
+            )
+        })?
+    {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(ErrorResponse::new("User with this email already exists")),
+        ));
+    }
+
+    // Hash password
+    let password_hash = state
+        .auth_service
+        .hash_password(&req.password)
+        .map_err(|e| {
+            tracing::error!("Password hashing failed: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new("Internal error")),
+            )
+        })?;
+
+    // Create user
+    let user = state
+        .auth_service
+        .create_user(
+            req.tenant_id,
+            &req.email,
+            &password_hash,
+            &req.name,
+            &req.role,
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!("User creation failed: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new("Failed to create user")),
+            )
+        })?;
+
+    // Generate tokens (auto-login after registration)
     let (access_token, refresh_token) =
         state
             .auth_service

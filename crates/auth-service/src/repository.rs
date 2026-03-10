@@ -29,6 +29,20 @@ impl UserRepository {
         .await
     }
 
+    /// Find user by email (including inactive users - for registration check)
+    pub async fn find_by_email_any(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
+        sqlx::query_as::<_, User>(
+            r#"
+            SELECT id, tenant_id, email, password_hash, name, role, is_active, created_at, updated_at
+            FROM users
+            WHERE email = $1
+            "#
+        )
+        .bind(email)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error> {
         sqlx::query_as::<_, User>(
             r#"

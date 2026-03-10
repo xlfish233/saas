@@ -13,7 +13,20 @@ pub struct Config {
     pub nats: NatsConfig,
     pub jwt: JwtConfig,
     #[serde(default)]
+    pub auth_service: AuthServiceConfig,
+    #[serde(default)]
     pub cors: CorsConfig,
+}
+
+#[derive(Debug, Deserialize, Clone, Default)]
+#[allow(dead_code)]
+pub struct AuthServiceConfig {
+    #[serde(default = "default_auth_service_url")]
+    pub url: String,
+}
+
+fn default_auth_service_url() -> String {
+    "http://127.0.0.1:8081".to_string()
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -105,13 +118,6 @@ impl Config {
         Ok(config.try_deserialize()?)
     }
 
-    // Convenience accessors for backward compatibility
-    pub fn host(&self) -> &str {
-        &self.server.host
-    }
-    pub fn port(&self) -> u16 {
-        self.server.port
-    }
     #[allow(dead_code)]
     pub fn database_url(&self) -> &str {
         &self.database.url
@@ -126,5 +132,8 @@ impl Config {
     }
     pub fn cors_origins(&self) -> Option<&String> {
         self.cors.origins.as_ref()
+    }
+    pub fn auth_service_url(&self) -> &str {
+        &self.auth_service.url
     }
 }

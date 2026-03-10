@@ -155,6 +155,35 @@ impl AuthService {
             .ok_or_else(|| anyhow::anyhow!("User not found"))
     }
 
+    /// Find user by email (for checking existence during registration)
+    /// This includes inactive users to prevent re-registration with same email
+    pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, anyhow::Error> {
+        self.users
+            .find_by_email_any(email)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Create a new user
+    pub async fn create_user(
+        &self,
+        tenant_id: Uuid,
+        email: &str,
+        password_hash: &str,
+        name: &str,
+        role: &str,
+    ) -> Result<User, anyhow::Error> {
+        self.users
+            .create(tenant_id, email, password_hash, name, role)
+            .await
+            .map_err(Into::into)
+    }
+
+    /// Hash a password
+    pub fn hash_password(&self, password: &str) -> Result<String, anyhow::Error> {
+        self.password_hasher.hash(password).map_err(Into::into)
+    }
+
     /// Hash a token for storage
     fn hash_token(&self, token: &str) -> String {
         let mut hasher = Sha256::new();
