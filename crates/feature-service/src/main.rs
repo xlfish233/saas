@@ -1,6 +1,6 @@
-//! Tenant Service - Multi-tenant Management
+//! Feature Flag Service - Feature Toggle Management
 //!
-//! Handles tenant lifecycle, configuration, and isolation management.
+//! Handles feature flag lifecycle, tenant feature assignments, and runtime checks.
 
 use axum::{
     extract::State,
@@ -13,11 +13,10 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 mod handlers;
 mod models;
-mod quota;
 mod repository;
 mod service;
 
-use service::TenantService;
+use service::FeatureService;
 use shared::config::AppConfig;
 
 #[derive(Clone)]
@@ -25,15 +24,15 @@ use shared::config::AppConfig;
 struct AppState {
     config: Arc<AppConfig>,
     db: sqlx::PgPool,
-    tenant_service: Arc<TenantService>,
+    feature_service: Arc<FeatureService>,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = AppConfig::load()?;
-    shared::telemetry::init_tracing("tenant-service");
+    shared::telemetry::init_tracing("feature-service");
 
-    tracing::info!("Starting tenant service...");
+    tracing::info!("Starting feature service...");
 
     let mut migration_settings = config.database.migration.clone();
     migration_settings.role = shared::db::MigrationRole::Verifier;
@@ -54,37 +53,38 @@ async fn main() -> anyhow::Result<()> {
         "database migration check completed"
     );
 
-    let tenant_service = Arc::new(TenantService::new(db.clone()));
+    let feature_service = Arc::new(FeatureService::new(db.clone()));
 
     let state = AppState {
         config: Arc::new(config),
         db,
-        tenant_service,
+        feature_service,
     };
 
     let addr = format!("{}:{}", state.config.server.host, state.config.server.port);
 
     let app = Router::new()
+        // Health endpoints
         .route("/health", get(health))
         .route("/ready", get(ready))
-        // Tenant CRUD
-        .route("/tenants", get(handlers::list_tenants))
-        .route("/tenants", post(handlers::create_tenant))
-        .route("/tenants/:id", get(handlers::get_tenant))
-        .route("/tenants/:id", put(handlers::update_tenant))
-        .route("/tenants/:id", delete(handlers::delete_tenant))
-        .route("/tenants/:id/schema", post(handlers::create_schema))
-        // Quota management
-        .route("/tenants/:id/quota", get(handlers::get_tenant_quota))
-        .route("/tenants/:id/usage", get(handlers::get_tenant_usage))
+        // Feature flag management
+        .route("/features", get(handlers::list_features))
+        .route("/features", post(handlers::create_feature))
+        .route("/features/:id", get(handlers::get_feature))
+        .route("/features/:id", put(handlers::update_feature))
+        .route("/features/:id", delete(handlers::delete_feature))
+        // Tenant feature management
+        .route("/tenants/:id/features", get(handlers::list_tenant_features))
         .route(
-            "/tenants/:id/quota/status",
-            get(handlers::get_tenant_quota_status),
+            "/tenants/:id/features/:featureId",
+            post(handlers::enable_tenant_feature),
         )
         .route(
-            "/tenants/:tenant_id/quota/check/:resource",
-            get(handlers::check_quota),
+            "/tenants/:id/features/:featureId",
+            delete(handlers::disable_tenant_feature),
         )
+        // Runtime feature check
+        .route("/check-feature", get(handlers::check_feature))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state);

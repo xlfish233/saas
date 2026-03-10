@@ -1,12 +1,18 @@
 //! API Gateway - Main Entry Point
 
 use axum::{
+    middleware,
     routing::{get, post},
     Router,
 };
 use http::{header, HeaderName, Method};
 use shared::auth::JwtService;
-use shared::middleware::RateLimiter;
+use shared::db::run_startup_migration_or_verify;
+use shared::middleware::{
+    audit_with_exempt, create_audit_service, default_rate_limiter, rate_limit_with_exempt,
+    AuditLogService,
+};
+use sqlx::PgPool;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,11 +21,55 @@ use tower_http::{
     request_id::{MakeRequestUuid, SetRequestIdLayer},
     trace::TraceLayer,
 };
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod auth_proxy;
 mod config;
 mod routes;
 mod telemetry;
+
+// ============ OpenAPI Documentation ============
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        health,
+        ready,
+        routes::auth::login,
+        routes::auth::register,
+        routes::auth::refresh,
+        routes::auth::logout,
+        routes::auth::me,
+        routes::tenants::list,
+        routes::tenants::get,
+    ),
+    components(
+        schemas(
+            routes::auth::LoginRequest,
+            routes::auth::RegisterRequest,
+            routes::auth::RefreshRequest,
+            routes::auth::LogoutRequest,
+            routes::auth::LoginResponse,
+            routes::auth::UserResponse,
+            routes::auth::ErrorResponse,
+            routes::tenants::Tenant,
+            routes::tenants::TenantList,
+        )
+    ),
+    tags(
+        (name = "health", description = "Health check endpoints"),
+        (name = "auth", description = "Authentication endpoints"),
+        (name = "tenants", description = "Tenant management endpoints"),
+    )
+)]
+struct ApiDoc;
+
+/// Paths exempt from rate limiting
+const RATE_LIMIT_EXEMPT_PATHS: &[&str] = &["/health", "/ready"];
+
+/// Paths exempt from audit logging
+const AUDIT_EXEMPT_PATHS: &[&str] = &["/health", "/ready"];
 
 /// Application state shared across handlers
 #[derive(Clone)]
@@ -27,8 +77,7 @@ pub(crate) struct AppState {
     pub(crate) config: Arc<config::Config>,
     pub(crate) jwt_service: Arc<JwtService>,
     pub(crate) http_client: reqwest::Client,
-    #[allow(dead_code)]
-    pub(crate) rate_limiter: RateLimiter,
+    pub(crate) audit_service: AuditLogService,
 }
 
 #[tokio::main]
@@ -58,24 +107,46 @@ async fn main() -> anyhow::Result<()> {
     )?;
     tracing::info!("JWT service initialized");
 
+    // Connect to database
+    let pool = PgPool::connect(&config.database.url).await?;
+    tracing::info!("Database pool created");
+
+    // Run migrations on startup
+    run_startup_migration_or_verify(&pool, &config.database.migration).await?;
+    tracing::info!("Database migrations verified");
+
+    // Create audit log service
+    let audit_service = create_audit_service(pool.clone());
+    tracing::info!("Audit log service initialized");
+
     // Create HTTP client for proxying to auth-service
     let http_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()?;
 
-    // Create rate limiter
-    let rate_limiter = shared::middleware::default_rate_limiter();
+    // Create rate limiter with tiered limits
+    let rate_limiter = default_rate_limiter();
 
     // Build state
     let state = AppState {
         config: Arc::new(config.clone()),
         jwt_service: Arc::new(jwt_service),
         http_client,
-        rate_limiter,
+        audit_service,
     };
 
     // Configure CORS from environment
     let cors = build_cors_layer(&config);
+
+    // Rate limit exempt paths
+    let rate_limit_exempt_paths: Vec<String> = RATE_LIMIT_EXEMPT_PATHS
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+
+    // Audit exempt paths
+    let audit_exempt_paths: Vec<String> =
+        AUDIT_EXEMPT_PATHS.iter().map(|s| s.to_string()).collect();
 
     // Build router with layered middleware
     let app = Router::new()
@@ -90,7 +161,30 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/auth/me", get(routes::auth::me))
         .route("/api/v1/tenants", get(routes::tenants::list))
         .route("/api/v1/tenants/{id}", get(routes::tenants::get))
-        .with_state(state)
+        .with_state(state.clone());
+
+    // Add Swagger UI only in non-production environments
+    let is_dev = config.server.environment != "production";
+    let app = if is_dev {
+        tracing::info!("Swagger UI enabled at /swagger-ui");
+        Router::new()
+            .merge(app)
+            .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+    } else {
+        app
+    };
+
+    let app = app
+        // Apply audit logging middleware (health endpoints are exempt)
+        .layer(middleware::from_fn_with_state(
+            (state.audit_service.clone(), audit_exempt_paths),
+            audit_with_exempt,
+        ))
+        // Apply rate limiting middleware (health endpoints are exempt)
+        .layer(middleware::from_fn_with_state(
+            (rate_limiter, rate_limit_exempt_paths),
+            rate_limit_with_exempt,
+        ))
         .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
         .layer(TraceLayer::new_for_http())
         .layer(cors);
@@ -143,10 +237,26 @@ fn build_cors_layer(config: &config::Config) -> CorsLayer {
         ])
 }
 
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Service is healthy", body = str)
+    ),
+    tag = "health"
+)]
 async fn health() -> &'static str {
     "OK"
 }
 
+#[utoipa::path(
+    get,
+    path = "/ready",
+    responses(
+        (status = 200, description = "Service is ready", body = str)
+    ),
+    tag = "health"
+)]
 async fn ready() -> &'static str {
     "Ready"
 }

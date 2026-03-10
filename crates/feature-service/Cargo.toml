@@ -1,0 +1,33 @@
+[package]
+name = "feature-service"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+shared = { path = "../shared" }
+
+axum.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+time.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+config.workspace = true
+
+http.workspace = true
+
+[dev-dependencies]
+tokio-test.workspace = true
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
+fake.workspace = true
+assert_matches.workspace = true
+pretty_assertions.workspace = true

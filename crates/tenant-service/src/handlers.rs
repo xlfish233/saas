@@ -175,3 +175,111 @@ pub async fn create_schema(
 pub struct SchemaResponse {
     pub schema_name: String,
 }
+
+// ========================================
+// Quota Management Handlers
+// ========================================
+
+use crate::models::{QuotaResponse, UsageResponse};
+use crate::quota::{QuotaResource, TenantQuotaStatus};
+
+/// Get tenant quota configuration
+pub async fn get_tenant_quota(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<QuotaResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let quota = state.tenant_service.get_quota(id).await.map_err(|e| {
+        tracing::error!("Failed to get quota: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new("Failed to get quota")),
+        )
+    })?;
+
+    Ok(Json(QuotaResponse {
+        max_users: quota.max_users,
+        max_storage_gb: quota.max_storage_gb,
+        max_api_calls_per_minute: quota.max_api_calls_per_minute,
+        max_storage_files: quota.max_storage_files,
+    }))
+}
+
+/// Get tenant usage
+pub async fn get_tenant_usage(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<UsageResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let usage = state.tenant_service.get_usage(id).await.map_err(|e| {
+        tracing::error!("Failed to get usage: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse::new("Failed to get usage")),
+        )
+    })?;
+
+    Ok(Json(usage))
+}
+
+/// Get complete quota status for a tenant
+pub async fn get_tenant_quota_status(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<TenantQuotaStatus>, (StatusCode, Json<ErrorResponse>)> {
+    let status = state
+        .tenant_service
+        .get_quota_status(id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to get quota status: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new("Failed to get quota status")),
+            )
+        })?;
+
+    Ok(Json(status))
+}
+
+/// Check if a specific resource quota is exceeded
+#[derive(Debug, Deserialize)]
+pub struct CheckQuotaPath {
+    pub tenant_id: Uuid,
+    pub resource: String,
+}
+
+pub async fn check_quota(
+    State(state): State<AppState>,
+    Path(path): Path<CheckQuotaPath>,
+) -> Result<Json<crate::quota::QuotaStatus>, (StatusCode, Json<ErrorResponse>)> {
+    let resource = QuotaResource::from_str(&path.resource).map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse::new("Invalid resource type")),
+        )
+    })?;
+
+    let status = state
+        .tenant_service
+        .check_quota(path.tenant_id, resource)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to check quota: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse::new("Failed to check quota")),
+            )
+        })?;
+
+    // Return 429 if quota exceeded
+    if status.exceeded {
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(ErrorResponse::new(&format!(
+                "Quota exceeded for resource: {}",
+                resource
+            ))),
+        ));
+    }
+
+    Ok(Json(status))
+}
