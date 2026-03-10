@@ -66,9 +66,9 @@ jobs:
         run: cargo clippy --all-targets -- -D warnings
 
       - name: Run unit tests
-        run: cargo test --lib -- --no-fail-fast
+        run: cargo test --lib
         env:
-          DATABASE_URL: postgres://testuser:placeholder@localhost:5432/test_db
+          DATABASE_URL: postgres://test:test@localhost:5432/test
 
         # Unit tests don't need testcontainers, run in parallel
       - name: Run integration tests with testcontainers
