@@ -41,26 +41,10 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache cargo
-        uses: actions/cache@v4
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Run clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: lint-and-test
 
       - name: Run clippy
         run: cargo clippy --all-targets -- -D warnings
@@ -70,15 +54,12 @@ jobs:
         env:
           DATABASE_URL: postgres://test:test@localhost:5432/test
 
-        # Unit tests don't need testcontainers, run in parallel
-      - name: Run integration tests with testcontainers
-        run: |
-          cargo test --test-threads=1 -- --ignored "auth-service,tenant-service,shared,api-gateway
+      - name: Run integration tests
+        run: cargo test --test-threads=1 -- --ignored "auth-service,tenant-service,shared,api-gateway"
         env:
           DATABASE_URL: postgres://testuser:placeholder@localhost:5432/test_db
           RUSTFLAGS: "-C instrument-coverage"
           RUST_LOG: debug
-        if: matrix.os == 'ubuntu-latest'
 
       - name: Generate coverage report
         run: |
@@ -86,17 +67,13 @@ jobs:
           cargo tarpaulin \
             --workspace \
             --out Xml \
-            --out lcov \
-            --out html \
             --output-dir coverage \
             --skip-clean \
             --engine llvm \
-            --timeout 300 \
+            --timeout 300
         env:
           RUSTFLAGS: "-C instrument-coverage"
           RUST_LOG: debug
-
-        if: matrix.os == 'ubuntu-latest'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -105,19 +82,9 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Coverage comment on PR
+      - name: Coverage summary
         if: github.event_name == 'pull_request'
-        run: |
-          echo "✅ Test coverage report generated"
-          echo "Check ./coverage/cobertura.xml for details"
-      - name: Run clippy
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Generate coverage report
-        run: |
-          cargo install cargo-tarpaulin --version 0.35.2 --locked
-          cargo tarpaulin --out Xml --output-dir . --skip-clean --engine llvm
-        if: github.ref == 'refs/heads/main'
+        run: echo "✅ Test coverage report generated - check ./coverage/cobertura.xml"
 
   # SAST Security Scan
   sast:
@@ -150,6 +117,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: security-audit
       - name: Cargo Audit
         run: |
           cargo install cargo-audit --locked
