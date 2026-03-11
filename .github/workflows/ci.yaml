@@ -158,10 +158,12 @@ jobs:
             --ignore RUSTSEC-2025-0111 \
             --ignore RUSTSEC-2025-0134
 
-  # Build and Scan
+  # Build and Scan (requires AWS credentials)
   build-and-scan:
     needs: [lint-and-test, sast, secret-scan, security-audit]
     runs-on: ubuntu-latest
+    # Skip this job if AWS credentials are not configured
+    if: ${{ vars.ENABLE_AWS_DEPLOY == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -212,11 +214,12 @@ jobs:
           docker push $ECR_REGISTRY/erp-saas:$IMAGE_TAG
         if: github.ref == 'refs/heads/main'
 
-  # Deploy to Production (requires manual approval)
+  # Deploy to Production (requires manual approval and AWS credentials)
   deploy:
     needs: build-and-scan
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    # Skip this job if AWS credentials are not configured
+    if: ${{ vars.ENABLE_AWS_DEPLOY == 'true' && github.ref == 'refs/heads/main' }}
     environment:
       name: production
       url: https://erp-saas.example.com
